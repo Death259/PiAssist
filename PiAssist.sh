@@ -21,7 +21,7 @@ while true; do
     --menu "Please select:" $HEIGHT $WIDTH 4 \
     "1" "Network (WiFi/Ethernet)" \
     "2" "Bluetooth" \
-	"3" "Controller" \
+	"3" "Controller (Retropie only currently)" \
     "4" "System Info" \
     2>&1 1>&3)
   exit_status=$?
@@ -203,8 +203,56 @@ while true; do
 		done
 		;;
 	3 )
-		result=$(echo "Game Controller")
-		display_result "Game Controller"
+		stayInControllerMenu=true
+		while $stayInControllerMenu; do
+			exec 3>&1
+			controllerMenuSeleciton=$(dialog \
+				--backtitle "Pi Assist" \
+				--title "Controller" \
+				--clear \
+				--cancel-label "Back" \
+				--menu "Please select:" $HEIGHT $WIDTH 3 \
+				"1" "Configure Game Controller (Root Required)" \
+				2>&1 1>&3)
+			exit_status=$?
+			case $exit_status in
+				$DIALOG_CANCEL)
+				  stayInControllerMenu=false
+				  ;;
+				$DIALOG_ESC)
+				  stayInControllerMenu=false
+				  ;;
+			esac
+			case $controllerMenuSeleciton in
+				0 )
+				  stayInControllerMenu=false
+				  ;;
+				1 )
+					currentUser=$(whoami)
+					if [ $currentUser == "root" ] ; then
+						joyconfigLocation="/opt/retropie/configs/all/retroarch.cfg"
+						response=$(dialog --title "Create Backup?" --inputbox "Would you like to create a backup of your current retroarch config?" 0 0 2>&1 1>&3)
+						response=${response,,}    # tolower
+						if [[ $response =~ ^(yes|y)$ ]] ; then
+							if [ ! -f $joyconfigLocation"_bak" ] ; then
+								cp $joyconfigLocation $joyconfigLocation"_bak"
+							else
+								backupExistsResponse=$(dialog --title "Overwrite Backup?" --inputbox "A backup currently exists. Do you want to overwrite it?" 0 0 2>&1 1>&3)
+								backupExistsResponse=${backupExistsResponse,,}    # tolower
+								if [[ $backupExistsResponse =~ ^(yes|y)$ ]] ; then
+									cp $joyconfigLocation $joyconfigLocation"_bak"
+								fi
+								/opt/retropie/emulators/retroarch/retroarch-joyconfig -o $joyconfigLocation
+							fi		
+						else
+							/opt/retropie/emulators/retroarch/retroarch-joyconfig -o $joyconfigLocation
+						fi
+					else
+						result=$(echo "You have to be running the script as root in order to configure controllers. Please try using sudo.")
+						display_result "Configure Controller"
+					fi
+			esac
+		done
 		;;
 	4 )
 		stayInSystemInfoMenu=true
