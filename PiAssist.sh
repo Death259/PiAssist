@@ -163,6 +163,18 @@ while true; do
 					fi
 					;;
 				2 )
+					bluetoothDeviceList=$(hcitool scan | sed -e 1d)
+					if [ "$bluetoothDeviceList" == "" ] ; then
+						result="No devices were found. Ensure device is on and try again."
+						display_result "Connect Bluetooth Device"
+					else
+						bluetoothMacAddress=$(dialog --title "Connect Bluetooth Device" --backtitle "Pi Assist" --inputbox "Device List: \n\n$bluetoothDeviceList \n\nEnter the mac address of the device you would like to conect to:" 0 0 2>&1 1>&3);
+						if [ $bluetoothMacAddress != "" ] ; then
+							bluez-simple-agent hci0 $bluetoothMacAddress
+							bluez-test-device trusted $bluetoothMacAddress yes
+							bluez-test-input connect $bluetoothMacAddress
+						fi
+					fi
 					;;
 				3 )
 					bluetoothDeviceList=$(bluez-test-device list)
