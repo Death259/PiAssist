@@ -21,6 +21,4 @@ Here's the menu options currently available to let you know what the system is c
         Display Home Space Utilization
 		
 
-Please see the Wiki for more detail explanations and instructions.
-
-https://github.com/Death259/PiAssist/wiki/
+Please see the [Wiki](https://github.com/Death259/PiAssist/wiki/) for more detail explanations and instructions.
