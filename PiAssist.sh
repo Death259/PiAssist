@@ -213,6 +213,7 @@ while true; do
 				--cancel-label "Back" \
 				--menu "Please select:" $HEIGHT $WIDTH 3 \
 				"1" "Configure Game Controller (Root Required)" \
+				"2" "Setup PS3 Controller over Bluetooth (Root Required) - Work in Progress" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
@@ -251,6 +252,63 @@ while true; do
 						result=$(echo "You have to be running the script as root in order to configure controllers. Please try using sudo.")
 						display_result "Configure Controller"
 					fi
+					;;
+				2 )
+					currentUser=$(whoami)
+					if [ $currentUser == "root" ] ; then
+						if [ command -v >/dev/null 2>&1 || ] ; then
+							wget http://www.pabr.org/sixlinux/sixpair.c
+							gcc -o sixpair sixpair.c -lusb
+							
+							wget http://sourceforge.net/projects/qtsixa/files/QtSixA%201.5.1/QtSixA-1.5.1-src.tar.gz
+							tar xfvz QtSixA-1.5.1-src.tar.gz
+							cd QtSixA-1.5.1/sixad
+							make
+							mkdir -p /var/lib/sixad/profiles
+							checkinstall
+							
+							update-rc.d sixad defaults
+							
+							echo "enable_leds 1" >> /var/lib/sixad/profiles/default
+							echo "enable_joystick 1" >> /var/lib/sixad/profiles/default
+							echo "enable_input 0" >> /var/lib/sixad/profiles/default
+							echo "enable_remote 0" >> /var/lib/sixad/profiles/default
+							echo "enable_rumble 1" >> /var/lib/sixad/profiles/default
+							echo "enable_timeout 0" >> /var/lib/sixad/profiles/default
+							echo "led_n_auto 1" >> /var/lib/sixad/profiles/default
+							echo "led_n_number 1" >> /var/lib/sixad/profiles/default
+							echo "led_anim 1" >> /var/lib/sixad/profiles/default
+							echo "enable_buttons 1" >> /var/lib/sixad/profiles/default
+							echo "enable_sbuttons 1" >> /var/lib/sixad/profiles/default
+							echo "enable_axis 1" >> /var/lib/sixad/profiles/default
+							echo "enable_accel 0" >> /var/lib/sixad/profiles/default
+							echo "enable_accon 0" >> /var/lib/sixad/profiles/default
+							echo "enable_speed 0" >> /var/lib/sixad/profiles/default
+							echo "enable_pos 0" >> /var/lib/sixad/profiles/default
+							
+							askToRebootMenuSelection=$(dialog \
+								--title "Reboot?" --clear \
+								--yesno "Missing prerequisites were installed. Your Pi needs to be rebooted. Okay to Reboot?" $HEIGHT $WIDTH \
+								2>&1 1>&3)
+							if [ "$askToRebootMenuSelection" == 0 ] ; then
+								shutdown -r now
+							fi
+						fi
+						
+						result=$(echo "Please plugin the PS3 controller you would like to pair via USB.")
+						display_result "PS3 Controller"
+						
+						./sixpair
+
+						if [ status sixad ] ; then
+							service sixad start
+						fi
+						
+					else
+						result=$(echo "You have to be running the script as root in order to install PS3 controller prerequisites. Please try using sudo.")
+						display_result "Configure Controller"
+					fi
+					;;
 			esac
 		done
 		;;
