@@ -21,7 +21,7 @@ while true; do
     --menu "Please select:" $HEIGHT $WIDTH 4 \
     "1" "Network (WiFi/Ethernet)" \
     "2" "Bluetooth" \
-	"3" "Controller (Retropie only currently)" \
+	"3" "Controller (Retropie Only Currently)" \
     "4" "System Info" \
     2>&1 1>&3)
   exit_status=$?
