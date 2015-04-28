@@ -161,12 +161,12 @@ while true; do
 						else
 							#install packages then ask to reboot
 							apt-get install bluetooth bluez-utils blueman
-							askToRebootMenuSelection=$(dialog \
-								--title "Reboot?" --clear \
-								--yesno "Missing packages were installed. Your Pi needs to be rebooted. Okay to Reboot?" $HEIGHT $WIDTH \
-								2>&1 1>&3)
-							if [ "$askToRebootMenuSelection" == 0 ] ; then
+							response=$(dialog --title "Reboot?" --inputbox "Missing packages were installed. Your Pi needs to be rebooted. Okay to Reboot? (Y/N)" 0 0 2>&1 1>&3)
+							response=${response,,}    # tolower
+							if [[ $response =~ ^(yes|y)$ ]] ; then
+								clear
 								shutdown -r now
+								exit
 							fi
 						fi
 					else
