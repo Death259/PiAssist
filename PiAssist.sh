@@ -18,11 +18,12 @@ while true; do
     --title "Main Menu" \
     --clear \
     --cancel-label "Exit" \
-    --menu "Please select:" $HEIGHT $WIDTH 4 \
+    --menu "Please select:" $HEIGHT $WIDTH 5 \
     "1" "Network (WiFi/Ethernet)" \
     "2" "Bluetooth" \
 	"3" "Controller (Retropie Only Currently)" \
     "4" "System Info" \
+	"5" "Update PiAssist" \
     2>&1 1>&3)
   exit_status=$?
   exec 3>&-
@@ -78,22 +79,33 @@ while true; do
 					display_result "WiFi Networks"
 					;;
 				3 )
-					wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
-					wifiSSID=$(dialog --title "WiFi Network SSID" --backtitle "Pi Assist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
-					if [ $wifiSSID != "" ] ; then
-						wifiPassword=$(dialog --title "WiFi Network Password" --backtitle "Pi Assist" --passwordbox "Enter the password of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
-						turnOnWifiResult=$(ifconfig wlan0 up)
-						connectionResults=$(iwconfig wlan0 essid $wifiSSID key s:$wifiPassword)
-						dhcpResult=$(dhclient wlan0)
-						result=$(echo $turnOnWifiResult $connectionResults $dhcpResult)
-						display_result "WiFi Network Connection"
-						if [ $turnOnWifiResult == "" ] && [ $connectionResults == "" ] && [ $dhcpResult == "" ] ; then
-							result=$(echo "You are now connected to the $wifiSSID network")
-							display_result "WiFi Network Connection"
-						else
-							result=$(echo "An issue occurred connecting to the WiFi network. ")
-							display_result "WiFi Network Connection"
+					currentUser=$(whoami)
+					if [ $currentUser == "root" ] ; then
+						wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
+						wifiSSID=$(dialog --title "WiFi Network SSID" --backtitle "Pi Assist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+						if [ $wifiSSID != "" ] ; then
+							wifiPassword=$(dialog --title "WiFi Network Password" --backtitle "Pi Assist" --passwordbox "Enter the password of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+							turnOnWifiResult=$(ifconfig wlan0 up)
+							connectionResults=$(iwconfig wlan0 essid $wifiSSID key s:$wifiPassword)
+							dhcpResult=$(dhclient wlan0)
+							read -p "Press [Enter] key to start backup..."
+							result=$(echo $turnOnWifiResult )
+							display_result "turnOnWifiResult"
+							result=$(echo $connectionResults )
+							display_result "connectionResults"
+							result=$(echo $dhcpResult )
+							display_result "dhcpResult"
+							if [ $turnOnWifiResult == "" ] && [ $connectionResults == "" ] && [[ $a == "Reloading*" ]] ; then
+								result=$(echo "You are now connected to the $wifiSSID network")
+								display_result "WiFi Network Connection"
+							else
+								result=$(echo "An issue occurred connecting to the WiFi network. ")
+								display_result "WiFi Network Connection"
+							fi
 						fi
+					else
+						result=$(echo "You have to be running the script as root in order to connect to a WiFi network. Please try using sudo.")
+						display_result "WiFi Network"
 					fi
 				;;
 			esac
@@ -358,6 +370,23 @@ while true; do
 				  ;;
 			esac
 		done
+		;;
+	5 )
+		wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O PiAssist.sh.new
+		chmod +x PiAssist.sh.new
+		cat > updateScript.sh << EOF
+#!/bin/bash
+if mv "PiAssist.sh.new" "PiAssist.sh"; then
+  rm -- \$0
+  clear
+  echo "Update Completed"
+else
+  echo "Update Failed!"
+fi
+EOF
+
+		exec /bin/bash ./updateScript.sh &
+		exit
 		;;
 	esac
 done
