@@ -160,7 +160,7 @@ while true; do
 							display_result "Bluetooth"
 						else
 							#install packages then ask to reboot
-							apt-get install bluetooth bluez-utils blueman
+							apt-get update > /dev/null && apt-get -y install bluetooth bluez-utils blueman > /dev/null
 							response=$(dialog --title "Reboot?" --inputbox "Missing packages were installed. Your Pi needs to be rebooted. Okay to Reboot? (Y/N)" 0 0 2>&1 1>&3)
 							response=${response,,}    # tolower
 							if [[ $response =~ ^(yes|y)$ ]] ; then
@@ -175,7 +175,9 @@ while true; do
 					fi
 					;;
 				2 )
-					bluetoothDeviceList=$(hcitool scan | sed -e 1d)
+					eval bluetoothDeviceList=( $(hcitool scan 2>/dev/null | sed -e 1d | xargs) )
+					#bluetoothDeviceList=$(hcitool scan | sed -e 1d)
+					
 					if [ "$bluetoothDeviceList" == "" ] ; then
 						result="No devices were found. Ensure device is on and try again."
 						display_result "Connect Bluetooth Device"
