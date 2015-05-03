@@ -4,21 +4,22 @@ The planned functionality of this project is to provide general system informati
 
 Here's the menu options currently available to let you know what the system is capable of:
 
-    Network (WiFi/Ethernet)
-        Display Network Information
-        Scan for WiFi Networks
-        Connect to WiFi network (Root Required)
-    Bluetooth
-        Install Bluetooth Packages (Root Required)
-        Connect Bluetooth Device
-        Remove Bluetooth Device
-        Display Registered & Connected Bluetooth Devices
-    Controller
-        Configure Game Controller (Root Required)
-    System Info
-        Display System Information
-        Display Disk Space
-        Display Home Space Utilization
+1. Network (WiFi/Ethernet)
+    1. Display Network Information
+    2. Scan for WiFi Networks
+    3. Connect to WiFi network (Root Required)
+2. Bluetooth
+    1. Install Bluetooth Packages (Root Required)
+    2. Connect Bluetooth Device
+    3. Remove Bluetooth Device
+    4. Display Registered & Connected Bluetooth Devices
+3. Controller
+    1. Configure Game Controller (Root Required)
+4. System Info
+    1. Display System Information
+    2. Display Disk Space
+    3. Display Home Space Utilization
+5. Update PiAssist
 		
 
 Please see the [Wiki](https://github.com/Death259/PiAssist/wiki/) for more detail explanations and instructions.
