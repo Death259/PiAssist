@@ -84,7 +84,7 @@ while true; do
 						wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
 						wifiSSID=$(dialog --title "WiFi Network SSID" --backtitle "Pi Assist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
 						if [ $wifiSSID != "" ] ; then
-							wifiPassword=$(dialog --title "WiFi Network Password" --backtitle "Pi Assist" --passwordbox "Enter the password of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+							wifiPassword=$(dialog --title "WiFi Network Password" --backtitle "Pi Assist" --insecure --passwordbox "Enter the password of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
 							turnOnWifiResult=$(ifconfig wlan0 up)
 							connectionResults=$(iwconfig wlan0 essid $wifiSSID key s:$wifiPassword)
 							dhcpResult=$(dhclient wlan0)
