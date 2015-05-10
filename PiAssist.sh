@@ -183,7 +183,7 @@ while true; do
 						# $i = "$i""$(hcitool name "$i")"
 					# done
 					echo "Scanning..."
-					bluetoothDeviceList=$(hcitool scan | sed -e 1d)
+					bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
 					if [ "$bluetoothDeviceList" == "" ] ; then
 						result="No devices were found. Ensure device is on and try again."
 						display_result "Connect Bluetooth Device"
