@@ -182,29 +182,59 @@ while true; do
 						# bluetoothName=$(hcitool name "$i")
 						# $i = "$i""$(hcitool name "$i")"
 					# done
+					
+					
+					#new stuff i'm testing
+					
+					# Need a file to capture output of dialog command
 					echo "Scanning..."
-					bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
+					bluetoothDeviceList=$(hcitool scan --flush)
+					echo $bluetoothDeviceList
 					if [ "$bluetoothDeviceList" == "" ] ; then
 						result="No devices were found. Ensure device is on and try again."
 						display_result "Connect Bluetooth Device"
 					else
-						bluetoothMacAddress=$(dialog --title "Connect Bluetooth Device" --backtitle "Pi Assist" --inputbox "$bluetoothDeviceList \n\nEnter the mac address of the device you would like to conect to:" 0 0 2>&1 1>&3);
-						if [ $bluetoothMacAddress != "" ] ; then
-							bluez-simple-agent hci0 $bluetoothMacAddress
-							bluez-test-device trusted $bluetoothMacAddress yes
-							bluez-test-input connect $bluetoothMacAddress
-						fi
+						result_file=$(mktemp)
+						trap "rm $result_file" EXIT
+						readarray devs < <(hcitool scan | tail -n +2 | awk '{print NR; print $0}')
+						dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
+						result=$(<$result_file)
+						answer={devs[$((result+1))]}
 					fi
+					
+					result=$answer
+					display_result "Answer"
+					#/end new stuff i'm testing
+					
+					
+					# echo "Scanning..."
+					# bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
+					# if [ "$bluetoothDeviceList" == "" ] ; then
+						# result="No devices were found. Ensure device is on and try again."
+						# display_result "Connect Bluetooth Device"
+					# else
+						# bluetoothMacAddress=$(dialog --title "Connect Bluetooth Device" --backtitle "Pi Assist" --inputbox "$bluetoothDeviceList \n\nEnter the mac address of the device you would like to conect to:" 0 0 2>&1 1>&3);
+						# if [ "$bluetoothMacAddress" != "" ] ; then
+							# bluez-simple-agent hci0 "$bluetoothMacAddress"
+							# bluez-test-device trusted "$bluetoothMacAddress" yes
+							# bluez-test-input connect "$bluetoothMacAddress"
+						# fi
+					# fi
 					;;
 				3 )
 					bluetoothDeviceList=$(bluez-test-device list)
-					bluetoothMacAddress=$(dialog --title "Remove Bluetooth Device" --backtitle "Pi Assist" --inputbox "Device List: \n\n$bluetoothDeviceList \n\nEnter the mac address of the device you would like to remove:" 0 0 2>&1 1>&3);
-					removeBluetoothDevice=$(bluez-test-device remove $bluetoothMacAddress)
-					if [ $removeBluetoothDevice == "" ] ; then
-						removeBluetoothDevice="Device Removed"
+					if [ "$bluetoothDeviceList" == "" ] ; then
+						result="There are no devices to remove."
+						display_result "Remove Bluetooth Device"
+					else
+						bluetoothMacAddress=$(dialog --title "Remove Bluetooth Device" --backtitle "Pi Assist" --inputbox "Device List: \n\n$bluetoothDeviceList \n\nEnter the mac address of the device you would like to remove:" 0 0 2>&1 1>&3);
+						removeBluetoothDevice=$(bluez-test-device remove $bluetoothMacAddress)
+						if [ $removeBluetoothDevice == "" ] ; then
+							removeBluetoothDevice="Device Removed"
+						fi
+						result=$removeBluetoothDevice
+						display_result "Removing Bluetooth Device"
 					fi
-					result=$removeBluetoothDevice
-					display_result "Removing Bluetooth Device"
 					;;
 				4 )
 					registeredDevices="There are no registered devices"
