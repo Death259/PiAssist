@@ -234,12 +234,16 @@ while true; do
 						display_result "Remove Bluetooth Device"
 					else
 						bluetoothMacAddress=$(dialog --title "Remove Bluetooth Device" --backtitle "Pi Assist" --inputbox "Device List: \n\n$bluetoothDeviceList \n\nEnter the mac address of the device you would like to remove:" 0 0 2>&1 1>&3);
-						removeBluetoothDevice=$(bluez-test-device remove $bluetoothMacAddress)
-						if [ $removeBluetoothDevice == "" ] ; then
-							removeBluetoothDevice="Device Removed"
+						if [ "$bluetoothMacAddress" != "" ] ; then
+							removeBluetoothDevice=$(bluez-test-device remove $bluetoothMacAddress)
+							if [ "$removeBluetoothDevice" == "" ] ; then
+								result="Device Removed"
+								display_result "Removing Bluetooth Device"
+							else
+								result="An error occured removing the bluetooth device. Please ensure you typed the mac address correctly."
+								display_result "Removing Bluetooth Device"
+							fi
 						fi
-						result=$removeBluetoothDevice
-						display_result "Removing Bluetooth Device"
 					fi
 					;;
 				4 )
