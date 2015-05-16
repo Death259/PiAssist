@@ -188,7 +188,7 @@ while true; do
 					
 					# Need a file to capture output of dialog command
 					echo "Scanning..."
-					bluetoothDeviceList=$(hcitool scan --flush)
+					bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
 					echo $bluetoothDeviceList
 					if [ "$bluetoothDeviceList" == "" ] ; then
 						result="No devices were found. Ensure device is on and try again."
@@ -198,12 +198,18 @@ while true; do
 						trap "rm $result_file" EXIT
 						readarray devs < <(hcitool scan | tail -n +2 | awk '{print NR; print $0}')
 						dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
-						result=$(<$result_file)
-						answer={devs[$((result+1))]}
+						arrayResult=$(<$result_file)
+						#answer={devs[$((arrayResult+1))]}
+						answer=${devs[$arrayResult+($arrayResult -1)]}
+						bluetoothMacAddress=($answer)
+						
+						bluez-simple-agent hci0 "$bluetoothMacAddress"
+						bluez-test-device trusted "$bluetoothMacAddress" yes
+						bluez-test-input connect "$bluetoothMacAddress"
+						
+						result="Bluetoogh device has been connected"
+						display_result "Connect Bluetooth Device"
 					fi
-					
-					result=$answer
-					display_result "Answer"
 					#/end new stuff i'm testing
 					
 					
