@@ -227,13 +227,21 @@ while true; do
 						# fi
 					# fi
 					;;
-				3 )
+				3 )				
 					bluetoothDeviceList=$(bluez-test-device list)
 					if [ "$bluetoothDeviceList" == "" ] ; then
 						result="There are no devices to remove."
 						display_result "Remove Bluetooth Device"
 					else
-						bluetoothMacAddress=$(dialog --title "Remove Bluetooth Device" --backtitle "Pi Assist" --inputbox "Device List: \n\n$bluetoothDeviceList \n\nEnter the mac address of the device you would like to remove:" 0 0 2>&1 1>&3);
+						result_file=$(mktemp)
+						trap "rm $result_file" EXIT
+						readarray devs < <(bluez-test-device list | awk '{print NR; print $0}')
+						dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
+						arrayResult=$(<$result_file)
+						#answer={devs[$((arrayResult+1))]}
+						answer=${devs[$arrayResult+($arrayResult -1)]}
+						bluetoothMacAddress=($answer)
+						
 						if [ "$bluetoothMacAddress" != "" ] ; then
 							removeBluetoothDevice=$(bluez-test-device remove $bluetoothMacAddress)
 							if [ "$removeBluetoothDevice" == "" ] ; then
