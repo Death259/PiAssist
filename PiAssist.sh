@@ -427,22 +427,26 @@ while true; do
 			esac
 		done
 		;;
-	5 )
-		wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O PiAssist.sh.new
-		chmod +x PiAssist.sh.new
+	5 )		
+		if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O PiAssist.sh.new ; then
+			result="An error occurred downloading the update."
+			display_result "Update PiAssist"
+		else
+			chmod +x PiAssist.sh.new
 		cat > updateScript.sh << EOF
 #!/bin/bash
 if mv "PiAssist.sh.new" "PiAssist.sh"; then
   rm -- \$0
   clear
-  echo "Update Completed"
+  echo "Update Completed. You need to restart the script."
 else
   echo "Update Failed!"
 fi
 EOF
 
-		exec /bin/bash ./updateScript.sh &
+		exec /bin/bash ./updateScript.sh
 		exit
+		fi
 		;;
 	esac
 done
