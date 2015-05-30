@@ -198,17 +198,30 @@ while true; do
 						trap "rm $result_file" EXIT
 						readarray devs < <(hcitool scan | tail -n +2 | awk '{print NR; print $0}')
 						dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
-						arrayResult=$(<$result_file)
-						#answer={devs[$((arrayResult+1))]}
-						answer=${devs[$arrayResult+($arrayResult -1)]}
-						bluetoothMacAddress=($answer)
-						
-						bluez-simple-agent hci0 "$bluetoothMacAddress"
-						bluez-test-device trusted "$bluetoothMacAddress" yes
-						bluez-test-input connect "$bluetoothMacAddress"
-						
-						result="Bluetoogh device has been connected"
-						display_result "Connect Bluetooth Device"
+						exit_status=$?
+						deviceAcutallySelected=true
+						case $exit_status in
+							$DIALOG_CANCEL)
+							  deviceAcutallySelected=false
+							  ;;
+							$DIALOG_ESC)
+							  deviceAcutallySelected=false
+							  ;;
+						esac
+						if [ $deviceAcutallySelected == true ] ; then
+							arrayResult=$(<$result_file)
+							#answer={devs[$((arrayResult+1))]}
+							answer=${devs[$arrayResult+($arrayResult -1)]}
+							
+							bluetoothMacAddress=($answer)
+							
+							bluez-simple-agent hci0 "$bluetoothMacAddress"
+							bluez-test-device trusted "$bluetoothMacAddress" yes
+							bluez-test-input connect "$bluetoothMacAddress"
+							
+							result="Bluetoogh device has been connected"
+							display_result "Connect Bluetooth Device"
+						fi
 					fi
 					#/end new stuff i'm testing
 					
@@ -237,19 +250,31 @@ while true; do
 						trap "rm $result_file" EXIT
 						readarray devs < <(bluez-test-device list | awk '{print NR; print $0}')
 						dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
-						arrayResult=$(<$result_file)
-						#answer={devs[$((arrayResult+1))]}
-						answer=${devs[$arrayResult+($arrayResult -1)]}
-						bluetoothMacAddress=($answer)
-						
-						if [ "$bluetoothMacAddress" != "" ] ; then
-							removeBluetoothDevice=$(bluez-test-device remove $bluetoothMacAddress)
-							if [ "$removeBluetoothDevice" == "" ] ; then
-								result="Device Removed"
-								display_result "Removing Bluetooth Device"
-							else
-								result="An error occured removing the bluetooth device. Please ensure you typed the mac address correctly."
-								display_result "Removing Bluetooth Device"
+						exit_status=$?
+						deviceAcutallySelected=true
+						case $exit_status in
+							$DIALOG_CANCEL)
+							  deviceAcutallySelected=false
+							  ;;
+							$DIALOG_ESC)
+							  deviceAcutallySelected=false
+							  ;;
+						esac
+						if [ $deviceAcutallySelected == true ] ; then
+							arrayResult=$(<$result_file)
+							#answer={devs[$((arrayResult+1))]}
+							answer=${devs[$arrayResult+($arrayResult -1)]}
+							bluetoothMacAddress=($answer)
+							
+							if [ "$bluetoothMacAddress" != "" ] ; then
+								removeBluetoothDevice=$(bluez-test-device remove $bluetoothMacAddress)
+								if [ "$removeBluetoothDevice" == "" ] ; then
+									result="Device Removed"
+									display_result "Removing Bluetooth Device"
+								else
+									result="An error occured removing the bluetooth device. Please ensure you typed the mac address correctly."
+									display_result "Removing Bluetooth Device"
+								fi
 							fi
 						fi
 					fi
