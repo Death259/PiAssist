@@ -19,7 +19,10 @@ Here's the menu options currently available to let you know what the system is c
     1. Display System Information
     2. Display Disk Space
     3. Display Home Space Utilization
-5. Update PiAssist
+5. Power Menu
+    1. Shutdown
+    2. Reboot
+6. Update PiAssist
 		
 
 Please see the [Wiki](https://github.com/Death259/PiAssist/wiki/) for more detail explanations and instructions.
