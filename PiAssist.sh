@@ -18,12 +18,13 @@ while true; do
     --title "Main Menu" \
     --clear \
     --cancel-label "Exit" \
-    --menu "Please select:" $HEIGHT $WIDTH 5 \
+    --menu "Please select:" $HEIGHT $WIDTH 6 \
     "1" "Network (WiFi/Ethernet)" \
     "2" "Bluetooth" \
 	"3" "Controller (Retropie Only Currently)" \
     "4" "System Info" \
-	"5" "Update PiAssist" \
+	"5" "Power Menu (Root Required)" \
+	"6" "Update PiAssist" \
     2>&1 1>&3)
   exit_status=$?
   exec 3>&-
@@ -475,7 +476,48 @@ while true; do
 			esac
 		done
 		;;
-	5 )		
+	5 )
+		currentUser=$(whoami)
+		if [ "$currentUser" == "root" ] ; then
+			stayInPowerOptionsMenu=true
+			while $stayInPowerOptionsMenu; do
+				exec 3>&1
+				systemInfoMenuSeleciton=$(dialog \
+					--backtitle "Pi Assist" \
+					--title "Power Menu" \
+					--clear \
+					--cancel-label "Back" \
+					--menu "Please select:" $HEIGHT $WIDTH 2 \
+					"1" "Shutdown" \
+					"2" "Reboot" \
+					2>&1 1>&3)
+				exit_status=$?
+				case $exit_status in
+					$DIALOG_CANCEL)
+					  stayInPowerOptionsMenu=false
+					  ;;
+					$DIALOG_ESC)
+					  stayInPowerOptionsMenu=false
+					  ;;
+				esac
+				case $systemInfoMenuSeleciton in
+					0 )
+					  stayInPowerOptionsMenu=false
+					  ;;
+					1 )
+						shutdown -h now
+						;;
+					2 )
+						shutdown -r now
+						;;
+				esac
+			done
+		else
+			result=$(echo "You have to be running the script as root in order to access the power menu. Please try using sudo.")
+			display_result "Configure Controller"
+		fi
+		;;
+	6 )		
 		if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O PiAssist.sh.new ; then
 			result="An error occurred downloading the update."
 			display_result "Update PiAssist"
