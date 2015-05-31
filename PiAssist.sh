@@ -433,7 +433,7 @@ while true; do
 				  stayInSystemInfoMenu=false
 				  ;;
 				1 )
-					result=$(echo "Hostname: $HOSTNAME\n\n"; echo "Uptime:"; uptime; echo "\nLoad Average"; uptime | grep -o "load.*" | cut -c 15-; echo "\nTemperature: "; vcgencmd measure_temp | cut -c 6-)
+					result=$(echo "Hostname:  $HOSTNAME\n"; echo "Uptime:"; uptime | sed 's/,.*//'; echo "\nLoad Average: "; uptime | grep -o "load.*" | cut -c 15-; echo "\nTemperature: "; vcgencmd measure_temp | cut -c 6-)
 					display_result "System Information"
 					;;
 				2 )
