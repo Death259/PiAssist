@@ -1,6 +1,6 @@
 In a nutshell, this is a BASH script file that I hope will make configuring/using your raspberry pi that much easier. I'm testing this only with a RetroPIE install, but most if not all of the functionality should carry over to other linux distributions (Raspbian, OpenELEC, etc.) that can run on the Pi.
 
-The planned functionality of this project is to provide general system information (network, remaining storage space, etc.), connecting/removing bluetooth devices, configuring game controllers (for use with emulators) and connecting to WiFi networks.
+The planned functionality of this project is to provide general system information (network, remaining storage space, etc.), connecting/removing bluetooth devices, configuring game controllers (for use with emulators), connecting to WiFi networks and whatever else I can come up with.
 
 Here's the menu options currently available to let you know what the system is capable of:
 
