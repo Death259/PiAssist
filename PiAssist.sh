@@ -561,24 +561,26 @@ EOF
 			display_result "Configure Controller"
 		fi
 		;;
-	7 )		
-		if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O PiAssist.sh.new ; then
+	7 )
+		homeDirectory="/home/pi"
+		if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O "$homeDirectory"/PiAssist.sh.new ; then
 			result="An error occurred downloading the update."
 			display_result "Update PiAssist"
 		else
-			chmod +x PiAssist.sh.new
-		cat > updateScript.sh << EOF
+			chmod +x "$homeDirectory"/PiAssist.sh.new
+		cat > "$homeDirectory"/updateScript.sh << EOF
 #!/bin/bash
 if mv "PiAssist.sh.new" "PiAssist.sh"; then
   rm -- \$0
+  dialog --title "Update Completed" --no-collapse --msgbox "Update Completed. You need to restart the script." 0 0
   clear
-  echo "Update Completed. You need to restart the script."
 else
-  echo "Update Failed!"
+  dialog --title "Update Failed!" --no-collapse --msgbox "There was an issue updating the script" 0 0
+  clear
 fi
 EOF
 
-		exec /bin/bash ./updateScript.sh
+		exec /bin/bash "$homeDirectory"/updateScript.sh
 		exit
 		fi
 		;;
