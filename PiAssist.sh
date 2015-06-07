@@ -18,13 +18,14 @@ while true; do
     --title "Main Menu" \
     --clear \
     --cancel-label "Exit" \
-    --menu "Please select:" $HEIGHT $WIDTH 6 \
+    --menu "Please select:" $HEIGHT $WIDTH 7 \
     "1" "Network (WiFi/Ethernet)" \
     "2" "Bluetooth" \
 	"3" "Controller (Retropie Only Currently)" \
     "4" "System Info" \
-	"5" "Power Menu (Root Required)" \
-	"6" "Update PiAssist" \
+	"5" "Add PiAssist to Emulation Station (Root Required)" \
+	"6" "Power Menu (Root Required)" \
+	"7" "Update PiAssist" \
     2>&1 1>&3)
   exit_status=$?
   exec 3>&-
@@ -329,7 +330,7 @@ while true; do
 				--clear \
 				--cancel-label "Back" \
 				--menu "Please select:" $HEIGHT $WIDTH 3 \
-				"1" "Configure Game Controller (Root Required)" \
+				"1" "Configure Game Controller for RetroArch Emulators (Root Required)" \
 				"2" "Setup PS3 Controller over Bluetooth (Root Required) - Work in Progress" \
 				2>&1 1>&3)
 			exit_status=$?
@@ -478,6 +479,44 @@ while true; do
 		;;
 	5 )
 		currentUser=$(whoami)
+		if [ $currentUser == "root" ] ; then
+			emulationStationConfig='/etc/emulationstation/es_systems.cfg'
+			if grep -q piassist "$emulationStationConfig"; then
+				result="PiAssist has already been added to Emulation Station"
+				display_result "Add PiAssist to Emulation Station"
+			else
+				piassistConfigLocation="/home/pi/piassist_es.cfg"
+				cat > "$piassistConfigLocation" << EOF
+  </system>
+  <system>
+    <name>piassist</name>
+    <fullname>PiAssist</fullname>
+    <path>~/PiAssist/</path>
+    <extension>.sh</extension>
+    <command>sudo /home/pi/PiAssist.sh %ROM%</command>
+    <platform/>
+    <theme>piassist</theme>
+EOF
+				sed -i "/<theme>pcengine<\/theme>/r $piassistConfigLocation" "$emulationStationConfig"
+				rm "$piassistConfigLocation"
+				
+				#download theme and copy it to the /etc/emulationstation/themes/simple folder
+				#Download Theme from GitHub and place it in the emulation station themes directory (/etc/emulationstation/themes/simple)
+
+				piassitThemeLocation="/etc/emulationstation/themes/simple/piassist/"
+				mkdir "$piassitThemeLocation"
+				mkdir "$piassitThemeLocation"/art/
+				wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/theme.xml -q -O "$piassitThemeLocation"/theme.xml
+				wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist.png -q -O "$piassitThemeLocation"/art/piassist.png
+				wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist_pixelated.png -q -O "$piassitThemeLocation"/art/piassist_pixelated.png
+			fi
+		else
+			result=$(echo "You have to be running the script as root in order to add PiAssist to emulation station. Please try using sudo.")
+			display_result "Configure Controller"
+		fi
+		;;
+	6 )
+		currentUser=$(whoami)
 		if [ "$currentUser" == "root" ] ; then
 			stayInPowerOptionsMenu=true
 			while $stayInPowerOptionsMenu; do
@@ -517,7 +556,7 @@ while true; do
 			display_result "Configure Controller"
 		fi
 		;;
-	6 )		
+	7 )		
 		if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O PiAssist.sh.new ; then
 			result="An error occurred downloading the update."
 			display_result "Update PiAssist"
