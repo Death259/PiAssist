@@ -509,12 +509,15 @@ EOF
 				wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist.png -q -O "$piassitThemeLocation"/art/piassist.png
 				wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist_pixelated.png -q -O "$piassitThemeLocation"/art/piassist_pixelated.png
 				
-				mkdir ~/PiAssist/
-				echo "" > "~/PiAssist/Launch PiAssist"
+				mkdir /home/pi/PiAssist/
+				touch /home/pi/PiAssist/Launch\ PiAssist.sh
+
+				result=$(echo "PiAssist has been added to the Emulation Station menu")
+				display_result "Add PiAssist to Emulation Station"				
 			fi
 		else
 			result=$(echo "You have to be running the script as root in order to add PiAssist to emulation station. Please try using sudo.")
-			display_result "Configure Controller"
+			display_result "Add PiAssist to Emulation Station"
 		fi
 		;;
 	6 )
