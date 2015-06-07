@@ -168,16 +168,16 @@ while true; do
 					currentUser=$(whoami)
 					if [ $currentUser == "root" ] ; then
 						packageInstalled=false
-						bluetoothInstalled=$(dpkg -s bluetooth | sed -n 2p)
-						if [ "$bluetoothInstalled" != 'Status: install ok installed' ] ; then
+						bluetoothInstalled=$(dpkg -l bluetooth)
+						if [ "$bluetoothInstalled" != 'dpkg-query: no packages found matching bluetooth' ] ; then
 							packageInstalled=true
 						fi
-						bluezutilsInstalled=$(dpkg -s bluez-utils | sed -n 2p)
-						if [ "$bluezutilsInstalled" != "Status: install ok installed" ] ; then
+						bluezutilsInstalled=$(dpkg -l bluez-utils)
+						if [ "$bluezutilsInstalled" != "dpkg-query: no packages found matching bluez-utils" ] ; then
 							packageInstalled=true
 						fi
-						bluemanInstalled=$(dpkg -s blueman | sed -n 2p)
-						if [ "$bluemanInstalled" != "Status: install ok installed" ] ; then
+						bluemanInstalled=$(dpkg -l blueman)
+						if [ "$bluemanInstalled" != "dpkg-query: no packages found matching blueman" ] ; then
 							packageInstalled=true
 						fi
 						if [ $packageInstalled == false ] ; then
