@@ -500,7 +500,6 @@ EOF
 				sed -i "/<theme>pcengine<\/theme>/r $piassistConfigLocation" "$emulationStationConfig"
 				rm "$piassistConfigLocation"
 				
-				#download theme and copy it to the /etc/emulationstation/themes/simple folder
 				#Download Theme from GitHub and place it in the emulation station themes directory (/etc/emulationstation/themes/simple)
 
 				piassitThemeLocation="/etc/emulationstation/themes/simple/piassist/"
