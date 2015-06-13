@@ -4,6 +4,7 @@ DIALOG_CANCEL=1
 DIALOG_ESC=255
 HEIGHT=0
 WIDTH=0
+emulationStationConfig='/etc/emulationstation/es_systems.cfg'
 
 display_result() {
   dialog --title "$1" \
@@ -448,10 +449,25 @@ showSystemInfoOptions() {
 	done
 }
 
+addAndUpdateEmulationStationEntries() {
+	#Download Theme from GitHub and place it in the emulation station themes directory (/etc/emulationstation/themes/simple)
+	piassitThemeLocation="/etc/emulationstation/themes/simple/piassist/"
+	mkdir "$piassitThemeLocation" > /dev/null 2>&1
+	mkdir "$piassitThemeLocation"art/ > /dev/null 2>&1
+	wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/theme.xml -q -O "$piassitThemeLocation"/theme.xml
+	wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist.png -q -O "$piassitThemeLocation"/art/piassist.png
+	wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist_pixelated.png -q -O "$piassitThemeLocation"/art/piassist_pixelated.png
+
+	mkdir /home/pi/PiAssist/ > /dev/null 2>&1
+	touch /home/pi/PiAssist/Launch\ PiAssist.sh
+	touch /home/pi/PiAssist/Update\ PiAssist.sh
+
+	chown -R pi:pi /home/pi/PiAssist
+}
+
 addPiAssistToEmulationStation() {
 	currentUser=$(whoami)
 	if [ $currentUser == "root" ] ; then
-		emulationStationConfig='/etc/emulationstation/es_systems.cfg'
 		if grep -q piassist "$emulationStationConfig"; then
 			result="PiAssist has already been added to Emulation Station"
 			display_result "Add PiAssist to Emulation Station"
@@ -471,20 +487,7 @@ EOF
 			sed -i "/<theme>pcengine<\/theme>/r $piassistConfigLocation" "$emulationStationConfig"
 			rm "$piassistConfigLocation"
 			
-			#Download Theme from GitHub and place it in the emulation station themes directory (/etc/emulationstation/themes/simple)
-
-			piassitThemeLocation="/etc/emulationstation/themes/simple/piassist/"
-			mkdir "$piassitThemeLocation" > /dev/null 2>&1
-			mkdir "$piassitThemeLocation"art/ > /dev/null 2>&1
-			wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/theme.xml -q -O "$piassitThemeLocation"/theme.xml
-			wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist.png -q -O "$piassitThemeLocation"/art/piassist.png
-			wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist_pixelated.png -q -O "$piassitThemeLocation"/art/piassist_pixelated.png
-			
-			mkdir /home/pi/PiAssist/ > /dev/null 2>&1
-			touch /home/pi/PiAssist/Launch\ PiAssist.sh
-			touch /home/pi/PiAssist/Update\ PiAssist.sh
-			
-			chown -R pi:pi /home/pi/PiAssist
+			addAndUpdateEmulationStationEntries
 
 			result=$(echo "PiAssist has been added to the Emulation Station menu")
 			display_result "Add PiAssist to Emulation Station"				
@@ -563,6 +566,44 @@ EOF
 	fi
 }
 
+showMiscellaneousMenuOptions() {
+	currentUser=$(whoami)
+	if [ "$currentUser" == "root" ] ; then
+		stayInMiscellaneousOptionsMenu=true
+		while $stayInMiscellaneousOptionsMenu; do
+			exec 3>&1
+			miscellaneousMenuSeleciton=$(dialog \
+				--backtitle "Pi Assist" \
+				--title "Miscellaneous" \
+				--clear \
+				--cancel-label "Back" \
+				--menu "Please select:" $HEIGHT $WIDTH 1 \
+				"1" "Change Keyboard Language/Configuration" \
+				2>&1 1>&3)
+			exit_status=$?
+			case $exit_status in
+				$DIALOG_CANCEL)
+				  stayInMiscellaneousOptionsMenu=false
+				  ;;
+				$DIALOG_ESC)
+				  stayInMiscellaneousOptionsMenu=false
+				  ;;
+			esac
+			case $miscellaneousMenuSeleciton in
+				0 )
+					stayInMiscellaneousOptionsMenu=false
+					;;
+				1 )
+					dpkg-reconfigure keyboard-configuration
+					;;
+			esac
+		done
+	else
+		result=$(echo "You have to be running the script as root in order to access the miscellaneous menu. Please try using sudo.")
+		display_result "Miscellaneous"
+	fi
+}
+
 
 #########
 #Perform actions based on parameters provided to the script. This should generally be from Emulation Station as the %ROM% gets passed in as a parameter.
@@ -587,7 +628,7 @@ while true; do
     --title "Main Menu" \
     --clear \
     --cancel-label "Exit" \
-    --menu "Please select:" $HEIGHT $WIDTH 7 \
+    --menu "Please select:" $HEIGHT $WIDTH 8 \
     "1" "Network (WiFi/Ethernet)" \
     "2" "Bluetooth" \
 	"3" "Controller (Retropie Only Currently)" \
@@ -595,6 +636,7 @@ while true; do
 	"5" "Add PiAssist to Emulation Station (Root Required)" \
 	"6" "Power Menu (Root Required)" \
 	"7" "Update PiAssist" \
+	"8" "Miscellaneous (Root Required)" \
     2>&1 1>&3)
   exit_status=$?
   exec 3>&-
@@ -634,6 +676,9 @@ while true; do
 		;;
 	7 )
 		updatePiAssist
+		;;
+	8 )
+		showMiscellaneousMenuOptions
 		;;
 	esac
 done
