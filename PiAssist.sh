@@ -538,6 +538,8 @@ showPowerMenuOptions() {
 }
 
 updatePiAssist() {
+	echo "Updating PiAssist..."
+	
 	homeDirectory="/home/pi"
 	if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O "$homeDirectory/PiAssist.sh.new" ; then
 		result="An error occurred downloading the update."
@@ -566,19 +568,13 @@ EOF
 #Perform actions based on parameters provided to the script. This should generally be from Emulation Station as the %ROM% gets passed in as a parameter.
 #########
 
-case "$1" in
+commandToRun="${1##*/}"
+commandToRun="${commandToRun%.*}"
+case "$commandToRun" in
 	"Update PiAssist" )
-	updatePiAssist
-	;;
-	"Eat Me" )
-		echo "Consider yourself eaten."
-		read
+		updatePiAssist
 	;;
 esac
-
-if [ "$1" = "Update PiAssist" ]; then
-	updatePiAssist
-fi
 
 #########
 #Perform dialog functions to present users the GUI
