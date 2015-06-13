@@ -474,15 +474,17 @@ EOF
 			#Download Theme from GitHub and place it in the emulation station themes directory (/etc/emulationstation/themes/simple)
 
 			piassitThemeLocation="/etc/emulationstation/themes/simple/piassist/"
-			mkdir "$piassitThemeLocation"
-			mkdir "$piassitThemeLocation"/art/
+			mkdir "$piassitThemeLocation" > /dev/null 2>&1
+			mkdir "$piassitThemeLocation"art/ > /dev/null 2>&1
 			wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/theme.xml -q -O "$piassitThemeLocation"/theme.xml
 			wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist.png -q -O "$piassitThemeLocation"/art/piassist.png
 			wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist_pixelated.png -q -O "$piassitThemeLocation"/art/piassist_pixelated.png
 			
-			mkdir /home/pi/PiAssist/
+			mkdir /home/pi/PiAssist/ > /dev/null 2>&1
 			touch /home/pi/PiAssist/Launch\ PiAssist.sh
 			touch /home/pi/PiAssist/Update\ PiAssist.sh
+			
+			chown -R pi:pi /home/pi/PiAssist
 
 			result=$(echo "PiAssist has been added to the Emulation Station menu")
 			display_result "Add PiAssist to Emulation Station"				
@@ -546,6 +548,7 @@ updatePiAssist() {
 #!/bin/bash
 if mv "PiAssist.sh.new" "PiAssist.sh"; then
   rm -- \$0
+  chown -R pi:pi PiAssist.sh
   dialog --title "Update Completed" --no-collapse --msgbox "Update Completed. You need to restart the script." 0 0
   clear
 else
