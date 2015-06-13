@@ -11,6 +11,576 @@ display_result() {
     --msgbox "$result" 0 0
 }
 
+
+showNetworkMenuOptions() {
+	stayInNetworkMenu=true
+	while $stayInNetworkMenu; do
+		exec 3>&1
+		networkMenuSeleciton=$(dialog \
+			--backtitle "Pi Assist" \
+			--title "System Information" \
+			--clear \
+			--cancel-label "Back" \
+			--menu "Please select:" $HEIGHT $WIDTH 3 \
+			"1" "Display Network Information" \
+			"2" "Scan for WiFI Networks (Root Required)" \
+			"3" "Connect to WiFi Network (Root Required)" \
+			2>&1 1>&3)
+		exit_status=$?
+		case $exit_status in
+			$DIALOG_CANCEL)
+			  stayInNetworkMenu=false
+			  ;;
+			$DIALOG_ESC)
+			  stayInNetworkMenu=false
+			  ;;
+		esac
+		case $networkMenuSeleciton in
+			0 )
+			  stayInNetworkMenu=false
+			  ;;
+			1 )
+				result=$(ifconfig)
+				display_result "Network Information"
+				;;
+			2 )
+				currentUser=$(whoami)
+				if [ $currentUser == "root" ] ; then
+					ifconfig wlan0 up
+					result=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
+					display_result "WiFi Networks"
+				else
+					result=$(echo "You have to be running the script as root in order to connect to a WiFi network. Please try using sudo.")
+					display_result "WiFi Network"
+				fi
+				;;
+			3 )
+				currentUser=$(whoami)
+				if [ $currentUser == "root" ] ; then
+					ifconfig wlan0 up
+					wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
+					wifiSSID=$(dialog --title "WiFi Network SSID" --backtitle "Pi Assist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+					if [ "$wifiSSID" != "" ] ; then
+						actuallyConnectToWifi=false
+						networkInterfacesConfigLocation="/etc/network/interfaces"
+						response=$(dialog --title "Create Backup?" --inputbox "Would you like to create a backup of your current network interfaces config?" 0 0 2>&1 1>&3)
+						response=${response,,}    # tolower
+						if [[ $response =~ ^(yes|y)$ ]] ; then
+							if [ ! -f $networkInterfacesConfigLocation"_bak" ] ; then
+								cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
+							else
+								backupExistsResponse=$(dialog --title "Overwrite Backup?" --inputbox "A backup currently exists. Do you want to overwrite it?" 0 0 2>&1 1>&3)
+								backupExistsResponse=${backupExistsResponse,,}    # tolower
+								if [[ $backupExistsResponse =~ ^(yes|y)$ ]] ; then
+									cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
+								fi
+								actuallyConnectToWifi=true
+							fi		
+						else
+							actuallyConnectToWifi=true
+						fi
+						if [ $actuallyConnectToWifi == true ] ; then
+							wifiPassword=$(dialog --title "WiFi Network Password" --backtitle "Pi Assist" --insecure --passwordbox "Enter the password of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+							echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet dhcp\n\twpa-ssid "'$wifiSSID'"\n\twpa-psk "'$wifiPassword'"' > $networkInterfacesConfigLocation
+							ifdown wlan0 > /dev/null 2>&1
+							ifup wlan0 > /dev/null 2>&1
+							
+							inetAddress=$(ifconfig wlan0 | grep "inet addr.*")
+							if [ "$inetAddress" != "" ] ; then
+								result=$(echo "You are now connected to $wifiSSID.")
+								display_result "WiFi Network"
+							else
+								result=$(echo "There was an issue trying to connect to $wifiSSID. Please ensure you typed the SSID and password correctly.")
+								display_result "WiFi Network"
+							fi
+						fi
+					fi
+				else
+					result=$(echo "You have to be running the script as root in order to connect to a WiFi network. Please try using sudo.")
+					display_result "WiFi Network"
+				fi
+			;;
+		esac
+	done
+}
+
+showBluetoothMenuOptions() {
+	stayInBluetoothMenu=true
+	while $stayInBluetoothMenu; do
+		exec 3>&1
+		bluetoothMenuSeleciton=$(dialog \
+			--backtitle "Pi Assist" \
+			--title "System Information" \
+			--clear \
+			--cancel-label "Back" \
+			--menu "Please select:" $HEIGHT $WIDTH 4 \
+			"1" "Install Bluetooth Packages (Root Required)" \
+			"2" "Connect Bluetooth Device" \
+			"3" "Remove Bluetooth Device" \
+			"4" "Display Registered & Connected Bluetooth Devices" \
+			2>&1 1>&3)
+		exit_status=$?
+		case $exit_status in
+			$DIALOG_CANCEL)
+			  stayInBluetoothMenu=false
+			  ;;
+			$DIALOG_ESC)
+			  stayInBluetoothMenu=false
+			  ;;
+		esac
+		case $bluetoothMenuSeleciton in
+			0 )
+				stayInBluetoothMenu=false
+				;;
+			1 )
+				currentUser=$(whoami)
+				if [ $currentUser == "root" ] ; then
+					packageInstalled=false
+					bluetoothInstalled=$(dpkg -l bluetooth 2>&1)
+					if [ "$bluetoothInstalled" == 'dpkg-query: no packages found matching bluetooth' ] ; then
+						packageInstalled=true
+					fi
+					bluezutilsInstalled=$(dpkg -l bluez-utils 2>&1)
+					if [ "$bluezutilsInstalled" == "dpkg-query: no packages found matching bluez-utils" ] ; then
+						packageInstalled=true
+					fi
+					bluemanInstalled=$(dpkg -l blueman 2>&1)
+					if [ "$bluemanInstalled" == "dpkg-query: no packages found matching blueman" ] ; then
+						packageInstalled=true
+					fi
+					if [ $packageInstalled == false ] ; then
+						result=$(echo "You already have all of the necessary packages installed.")
+						display_result "Bluetooth"
+					else
+						#install packages then ask to reboot
+						apt-get update > /dev/null && apt-get -y install bluetooth bluez-utils blueman > /dev/null
+						response=$(dialog --title "Reboot?" --inputbox "Missing packages were installed. Your Pi needs to be rebooted. Okay to Reboot? (Y/N)" 0 0 2>&1 1>&3)
+						response=${response,,}    # tolower
+						if [[ $response =~ ^(yes|y)$ ]] ; then
+							clear
+							shutdown -r now
+							exit
+						fi
+					fi
+				else
+					result=$(echo "You have to be running the script as root in order to install packages. Please try using sudo.")
+					display_result "Bluetooth"
+				fi
+				;;
+			2 )
+				# bluetoothMacAddressList=( $(hcitool scan 2>/dev/null | sed -e 1d | awk '{print $1}') )
+				# echo $bluetoothMacAddressList
+				# eval bluetoothDeviceList=$bluetoothMacAddressList
+				# select item in "${bluetoothDeviceList[@]}"; do
+					# bluetoothName=$(hcitool name "$i")
+					# $i = "$i""$(hcitool name "$i")"
+				# done
+				
+				
+				#new stuff i'm testing
+				
+				# Need a file to capture output of dialog command
+				echo "Scanning..."
+				bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
+				echo $bluetoothDeviceList
+				if [ "$bluetoothDeviceList" == "" ] ; then
+					result="No devices were found. Ensure device is on and try again."
+					display_result "Connect Bluetooth Device"
+				else
+					result_file=$(mktemp)
+					trap "rm $result_file" EXIT
+					readarray devs < <(hcitool scan | tail -n +2 | awk '{print NR; print $0}')
+					dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
+					exit_status=$?
+					deviceAcutallySelected=true
+					case $exit_status in
+						$DIALOG_CANCEL)
+						  deviceAcutallySelected=false
+						  ;;
+						$DIALOG_ESC)
+						  deviceAcutallySelected=false
+						  ;;
+					esac
+					if [ $deviceAcutallySelected == true ] ; then
+						arrayResult=$(<$result_file)
+						#answer={devs[$((arrayResult+1))]}
+						answer=${devs[$arrayResult+($arrayResult -1)]}
+						
+						bluetoothMacAddress=($answer)
+						
+						bluez-simple-agent hci0 "$bluetoothMacAddress"
+						bluez-test-device trusted "$bluetoothMacAddress" yes
+						bluez-test-input connect "$bluetoothMacAddress"
+						
+						result="Bluetoogh device has been connected"
+						display_result "Connect Bluetooth Device"
+					fi
+				fi
+				#/end new stuff i'm testing
+				
+				
+				# echo "Scanning..."
+				# bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
+				# if [ "$bluetoothDeviceList" == "" ] ; then
+					# result="No devices were found. Ensure device is on and try again."
+					# display_result "Connect Bluetooth Device"
+				# else
+					# bluetoothMacAddress=$(dialog --title "Connect Bluetooth Device" --backtitle "Pi Assist" --inputbox "$bluetoothDeviceList \n\nEnter the mac address of the device you would like to conect to:" 0 0 2>&1 1>&3);
+					# if [ "$bluetoothMacAddress" != "" ] ; then
+						# bluez-simple-agent hci0 "$bluetoothMacAddress"
+						# bluez-test-device trusted "$bluetoothMacAddress" yes
+						# bluez-test-input connect "$bluetoothMacAddress"
+					# fi
+				# fi
+				;;
+			3 )				
+				bluetoothDeviceList=$(bluez-test-device list)
+				if [ "$bluetoothDeviceList" == "" ] ; then
+					result="There are no devices to remove."
+					display_result "Remove Bluetooth Device"
+				else
+					result_file=$(mktemp)
+					trap "rm $result_file" EXIT
+					readarray devs < <(bluez-test-device list | awk '{print NR; print $0}')
+					dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
+					exit_status=$?
+					deviceAcutallySelected=true
+					case $exit_status in
+						$DIALOG_CANCEL)
+						  deviceAcutallySelected=false
+						  ;;
+						$DIALOG_ESC)
+						  deviceAcutallySelected=false
+						  ;;
+					esac
+					if [ $deviceAcutallySelected == true ] ; then
+						arrayResult=$(<$result_file)
+						#answer={devs[$((arrayResult+1))]}
+						answer=${devs[$arrayResult+($arrayResult -1)]}
+						bluetoothMacAddress=($answer)
+						
+						if [ "$bluetoothMacAddress" != "" ] ; then
+							removeBluetoothDevice=$(bluez-test-device remove $bluetoothMacAddress)
+							if [ "$removeBluetoothDevice" == "" ] ; then
+								result="Device Removed"
+								display_result "Removing Bluetooth Device"
+							else
+								result="An error occured removing the bluetooth device. Please ensure you typed the mac address correctly."
+								display_result "Removing Bluetooth Device"
+							fi
+						fi
+					fi
+				fi
+				;;
+			4 )
+				registeredDevices="There are no registered devices"
+				if [ "$(bluez-test-device list)" != "" ] ; then
+					registeredDevices=$(bluez-test-device list)
+				fi
+				activeConnections="There are no active connections"
+				if [ "$(hcitool con)" != "Connections:" ] ; then
+					activeConnections=$(hcitool con | sed -e 1d)
+				fi
+									
+				result=$(echo ""; echo "Registered Devices:"; echo ""; echo "$registeredDevices"; echo ""; echo ""; echo "Active Connections:"; echo ""; echo "$activeConnections")
+				display_result "Registered Devices & Active Connections"
+				;;
+		esac
+	done
+}
+
+showControllerMenuOptions() {
+	stayInControllerMenu=true
+	while $stayInControllerMenu; do
+		exec 3>&1
+		controllerMenuSeleciton=$(dialog \
+			--backtitle "Pi Assist" \
+			--title "Controller" \
+			--clear \
+			--cancel-label "Back" \
+			--menu "Please select:" $HEIGHT $WIDTH 3 \
+			"1" "Configure Game Controller for RetroArch Emulators (Root Required)" \
+			"2" "Setup PS3 Controller over Bluetooth (Root Required) - Work in Progress" \
+			2>&1 1>&3)
+		exit_status=$?
+		case $exit_status in
+			$DIALOG_CANCEL)
+			  stayInControllerMenu=false
+			  ;;
+			$DIALOG_ESC)
+			  stayInControllerMenu=false
+			  ;;
+		esac
+		case $controllerMenuSeleciton in
+			0 )
+			  stayInControllerMenu=false
+			  ;;
+			1 )
+				currentUser=$(whoami)
+				if [ $currentUser == "root" ] ; then
+					joyconfigLocation="/opt/retropie/configs/all/retroarch.cfg"
+					response=$(dialog --title "Create Backup?" --inputbox "Would you like to create a backup of your current retroarch config?" 0 0 2>&1 1>&3)
+					response=${response,,}    # tolower
+					if [[ $response =~ ^(yes|y)$ ]] ; then
+						if [ ! -f $joyconfigLocation"_bak" ] ; then
+							cp $joyconfigLocation $joyconfigLocation"_bak"
+						else
+							backupExistsResponse=$(dialog --title "Overwrite Backup?" --inputbox "A backup currently exists. Do you want to overwrite it?" 0 0 2>&1 1>&3)
+							backupExistsResponse=${backupExistsResponse,,}    # tolower
+							if [[ $backupExistsResponse =~ ^(yes|y)$ ]] ; then
+								cp $joyconfigLocation $joyconfigLocation"_bak"
+							fi
+							/opt/retropie/emulators/retroarch/retroarch-joyconfig -o $joyconfigLocation
+						fi		
+					else
+						/opt/retropie/emulators/retroarch/retroarch-joyconfig -o $joyconfigLocation
+					fi
+				else
+					result=$(echo "You have to be running the script as root in order to configure controllers. Please try using sudo.")
+					display_result "Configure Controller"
+				fi
+				;;
+			2 )
+				currentUser=$(whoami)
+				if [ $currentUser == "root" ] ; then
+					if [ command -v >/dev/null 2>&1 || ] ; then
+						wget http://www.pabr.org/sixlinux/sixpair.c
+						gcc -o sixpair sixpair.c -lusb
+						
+						wget http://sourceforge.net/projects/qtsixa/files/QtSixA%201.5.1/QtSixA-1.5.1-src.tar.gz
+						tar xfvz QtSixA-1.5.1-src.tar.gz
+						cd QtSixA-1.5.1/sixad
+						make
+						mkdir -p /var/lib/sixad/profiles
+						checkinstall
+						
+						update-rc.d sixad defaults
+						
+						echo "enable_leds 1" >> /var/lib/sixad/profiles/default
+						echo "enable_joystick 1" >> /var/lib/sixad/profiles/default
+						echo "enable_input 0" >> /var/lib/sixad/profiles/default
+						echo "enable_remote 0" >> /var/lib/sixad/profiles/default
+						echo "enable_rumble 1" >> /var/lib/sixad/profiles/default
+						echo "enable_timeout 0" >> /var/lib/sixad/profiles/default
+						echo "led_n_auto 1" >> /var/lib/sixad/profiles/default
+						echo "led_n_number 1" >> /var/lib/sixad/profiles/default
+						echo "led_anim 1" >> /var/lib/sixad/profiles/default
+						echo "enable_buttons 1" >> /var/lib/sixad/profiles/default
+						echo "enable_sbuttons 1" >> /var/lib/sixad/profiles/default
+						echo "enable_axis 1" >> /var/lib/sixad/profiles/default
+						echo "enable_accel 0" >> /var/lib/sixad/profiles/default
+						echo "enable_accon 0" >> /var/lib/sixad/profiles/default
+						echo "enable_speed 0" >> /var/lib/sixad/profiles/default
+						echo "enable_pos 0" >> /var/lib/sixad/profiles/default
+						
+						askToRebootMenuSelection=$(dialog \
+							--title "Reboot?" --clear \
+							--yesno "Missing prerequisites were installed. Your Pi needs to be rebooted. Okay to Reboot?" $HEIGHT $WIDTH \
+							2>&1 1>&3)
+						if [ "$askToRebootMenuSelection" == 0 ] ; then
+							shutdown -r now
+						fi
+					fi
+					
+					result=$(echo "Please plugin the PS3 controller you would like to pair via USB.")
+					display_result "PS3 Controller"
+					
+					./sixpair
+
+					if [ status sixad ] ; then
+						service sixad start
+					fi
+					
+				else
+					result=$(echo "You have to be running the script as root in order to install PS3 controller prerequisites. Please try using sudo.")
+					display_result "Configure Controller"
+				fi
+				;;
+		esac
+	done
+}
+
+showSystemInfoOptions() {
+	stayInSystemInfoMenu=true
+	while $stayInSystemInfoMenu; do
+		exec 3>&1
+		systemInfoMenuSeleciton=$(dialog \
+			--backtitle "Pi Assist" \
+			--title "System Information" \
+			--clear \
+			--cancel-label "Back" \
+			--menu "Please select:" $HEIGHT $WIDTH 3 \
+			"1" "Display System Information" \
+			"2" "Display Disk Space" \
+			"3" "Display Home Space Utilization" \
+			2>&1 1>&3)
+		exit_status=$?
+		case $exit_status in
+			$DIALOG_CANCEL)
+			  stayInSystemInfoMenu=false
+			  ;;
+			$DIALOG_ESC)
+			  stayInSystemInfoMenu=false
+			  ;;
+		esac
+		case $systemInfoMenuSeleciton in
+			0 )
+			  stayInSystemInfoMenu=false
+			  ;;
+			1 )
+				result=$(echo "Hostname:  $HOSTNAME\n"; echo "Uptime:"; uptime | sed 's/,.*//'; echo "\nLoad Average: "; uptime | grep -o "load.*" | cut -c 15-; echo "\nTemperature: "; vcgencmd measure_temp | cut -c 6-)
+				display_result "System Information"
+				;;
+			2 )
+			  result=$(df -h)
+			  display_result "Disk Space"
+			  ;;
+			3 )
+			  if [[ $(id -u) -eq 0 ]]; then
+				result=$(du -sh /home/* 2> /dev/null)
+				display_result "Home Space Utilization (All Users)"
+			  else
+				result=$(du -sh $HOME 2> /dev/null)
+				display_result "Home Space Utilization ($USER)"
+			  fi
+			  ;;
+		esac
+	done
+}
+
+addPiAssistToEmulationStation() {
+	currentUser=$(whoami)
+	if [ $currentUser == "root" ] ; then
+		emulationStationConfig='/etc/emulationstation/es_systems.cfg'
+		if grep -q piassist "$emulationStationConfig"; then
+			result="PiAssist has already been added to Emulation Station"
+			display_result "Add PiAssist to Emulation Station"
+		else
+			piassistConfigLocation="/home/pi/piassist_es.cfg"
+			cat > "$piassistConfigLocation" << EOF
+  </system>
+  <system>
+    <name>piassist</name>
+    <fullname>PiAssist</fullname>
+    <path>~/PiAssist/</path>
+    <extension>.sh</extension>
+    <command>sudo /home/pi/PiAssist.sh %ROM%</command>
+    <platform/>
+    <theme>piassist</theme>
+EOF
+			sed -i "/<theme>pcengine<\/theme>/r $piassistConfigLocation" "$emulationStationConfig"
+			rm "$piassistConfigLocation"
+			
+			#Download Theme from GitHub and place it in the emulation station themes directory (/etc/emulationstation/themes/simple)
+
+			piassitThemeLocation="/etc/emulationstation/themes/simple/piassist/"
+			mkdir "$piassitThemeLocation"
+			mkdir "$piassitThemeLocation"/art/
+			wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/theme.xml -q -O "$piassitThemeLocation"/theme.xml
+			wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist.png -q -O "$piassitThemeLocation"/art/piassist.png
+			wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist_pixelated.png -q -O "$piassitThemeLocation"/art/piassist_pixelated.png
+			
+			mkdir /home/pi/PiAssist/
+			touch /home/pi/PiAssist/Launch\ PiAssist.sh
+			touch /home/pi/PiAssist/Update\ PiAssist.sh
+
+			result=$(echo "PiAssist has been added to the Emulation Station menu")
+			display_result "Add PiAssist to Emulation Station"				
+		fi
+	else
+		result=$(echo "You have to be running the script as root in order to add PiAssist to emulation station. Please try using sudo.")
+		display_result "Add PiAssist to Emulation Station"
+	fi
+}
+
+showPowerMenuOptions() {
+	currentUser=$(whoami)
+	if [ "$currentUser" == "root" ] ; then
+		stayInPowerOptionsMenu=true
+		while $stayInPowerOptionsMenu; do
+			exec 3>&1
+			systemInfoMenuSeleciton=$(dialog \
+				--backtitle "Pi Assist" \
+				--title "Power Menu" \
+				--clear \
+				--cancel-label "Back" \
+				--menu "Please select:" $HEIGHT $WIDTH 2 \
+				"1" "Shutdown" \
+				"2" "Reboot" \
+				2>&1 1>&3)
+			exit_status=$?
+			case $exit_status in
+				$DIALOG_CANCEL)
+				  stayInPowerOptionsMenu=false
+				  ;;
+				$DIALOG_ESC)
+				  stayInPowerOptionsMenu=false
+				  ;;
+			esac
+			case $systemInfoMenuSeleciton in
+				0 )
+				  stayInPowerOptionsMenu=false
+				  ;;
+				1 )
+					shutdown -h now
+					;;
+				2 )
+					shutdown -r now
+					;;
+			esac
+		done
+	else
+		result=$(echo "You have to be running the script as root in order to access the power menu. Please try using sudo.")
+		display_result "Configure Controller"
+	fi
+}
+
+updatePiAssist() {
+	homeDirectory="/home/pi"
+	if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O "$homeDirectory/PiAssist.sh.new" ; then
+		result="An error occurred downloading the update."
+		display_result "Update PiAssist"
+	else
+		chmod +x "$homeDirectory/PiAssist.sh.new"
+		cat > "$homeDirectory/updateScript.sh" << EOF
+#!/bin/bash
+if mv "PiAssist.sh.new" "PiAssist.sh"; then
+  rm -- \$0
+  dialog --title "Update Completed" --no-collapse --msgbox "Update Completed. You need to restart the script." 0 0
+  clear
+else
+  dialog --title "Update Failed!" --no-collapse --msgbox "There was an issue updating the script" 0 0
+  clear
+fi
+EOF
+		exec /bin/bash "$homeDirectory/updateScript.sh"
+		exit
+	fi
+}
+
+
+#########
+#Perform actions based on parameters provided to the script. This should generally be from Emulation Station as the %ROM% gets passed in as a parameter.
+#########
+
+case "$1" in
+	"Update PiAssist" )
+	updatePiAssist
+	;;
+	"Eat Me" )
+		echo "Consider yourself eaten."
+		read
+	;;
+esac
+
+if [ "$1" = "Update PiAssist" ]; then
+	updatePiAssist
+fi
+
+#########
+#Perform dialog functions to present users the GUI
+#########
+
 while true; do
   exec 3>&1
   maineMenuSelection=$(dialog \
@@ -46,543 +616,25 @@ while true; do
 		clear
 		;;
 	1 )
-		stayInNetworkMenu=true
-		while $stayInNetworkMenu; do
-			exec 3>&1
-			networkMenuSeleciton=$(dialog \
-				--backtitle "Pi Assist" \
-				--title "System Information" \
-				--clear \
-				--cancel-label "Back" \
-				--menu "Please select:" $HEIGHT $WIDTH 3 \
-				"1" "Display Network Information" \
-				"2" "Scan for WiFI Networks (Root Required)" \
-				"3" "Connect to WiFi Network (Root Required)" \
-				2>&1 1>&3)
-			exit_status=$?
-			case $exit_status in
-				$DIALOG_CANCEL)
-				  stayInNetworkMenu=false
-				  ;;
-				$DIALOG_ESC)
-				  stayInNetworkMenu=false
-				  ;;
-			esac
-			case $networkMenuSeleciton in
-				0 )
-				  stayInNetworkMenu=false
-				  ;;
-				1 )
-					result=$(ifconfig)
-					display_result "Network Information"
-					;;
-				2 )
-					currentUser=$(whoami)
-					if [ $currentUser == "root" ] ; then
-						ifconfig wlan0 up
-						result=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
-						display_result "WiFi Networks"
-					else
-						result=$(echo "You have to be running the script as root in order to connect to a WiFi network. Please try using sudo.")
-						display_result "WiFi Network"
-					fi
-					;;
-				3 )
-					currentUser=$(whoami)
-					if [ $currentUser == "root" ] ; then
-						ifconfig wlan0 up
-						wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
-						wifiSSID=$(dialog --title "WiFi Network SSID" --backtitle "Pi Assist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
-						if [ "$wifiSSID" != "" ] ; then
-							actuallyConnectToWifi=false
-							networkInterfacesConfigLocation="/etc/network/interfaces"
-							response=$(dialog --title "Create Backup?" --inputbox "Would you like to create a backup of your current network interfaces config?" 0 0 2>&1 1>&3)
-							response=${response,,}    # tolower
-							if [[ $response =~ ^(yes|y)$ ]] ; then
-								if [ ! -f $networkInterfacesConfigLocation"_bak" ] ; then
-									cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
-								else
-									backupExistsResponse=$(dialog --title "Overwrite Backup?" --inputbox "A backup currently exists. Do you want to overwrite it?" 0 0 2>&1 1>&3)
-									backupExistsResponse=${backupExistsResponse,,}    # tolower
-									if [[ $backupExistsResponse =~ ^(yes|y)$ ]] ; then
-										cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
-									fi
-									actuallyConnectToWifi=true
-								fi		
-							else
-								actuallyConnectToWifi=true
-							fi
-							if [ $actuallyConnectToWifi == true ] ; then
-								wifiPassword=$(dialog --title "WiFi Network Password" --backtitle "Pi Assist" --insecure --passwordbox "Enter the password of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
-								echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet dhcp\n\twpa-ssid "'$wifiSSID'"\n\twpa-psk "'$wifiPassword'"' > $networkInterfacesConfigLocation
-								ifdown wlan0 > /dev/null 2>&1
-								ifup wlan0 > /dev/null 2>&1
-								
-								inetAddress=$(ifconfig wlan0 | grep "inet addr.*")
-								if [ "$inetAddress" != "" ] ; then
-									result=$(echo "You are now connected to $wifiSSID.")
-									display_result "WiFi Network"
-								else
-									result=$(echo "There was an issue trying to connect to $wifiSSID. Please ensure you typed the SSID and password correctly.")
-									display_result "WiFi Network"
-								fi
-							fi
-						fi
-					else
-						result=$(echo "You have to be running the script as root in order to connect to a WiFi network. Please try using sudo.")
-						display_result "WiFi Network"
-					fi
-				;;
-			esac
-		done
+		showNetworkMenuOptions
 		;;
 	2 )
-		stayInBluetoothMenu=true
-		while $stayInBluetoothMenu; do
-			exec 3>&1
-			bluetoothMenuSeleciton=$(dialog \
-				--backtitle "Pi Assist" \
-				--title "System Information" \
-				--clear \
-				--cancel-label "Back" \
-				--menu "Please select:" $HEIGHT $WIDTH 4 \
-				"1" "Install Bluetooth Packages (Root Required)" \
-				"2" "Connect Bluetooth Device" \
-				"3" "Remove Bluetooth Device" \
-				"4" "Display Registered & Connected Bluetooth Devices" \
-				2>&1 1>&3)
-			exit_status=$?
-			case $exit_status in
-				$DIALOG_CANCEL)
-				  stayInBluetoothMenu=false
-				  ;;
-				$DIALOG_ESC)
-				  stayInBluetoothMenu=false
-				  ;;
-			esac
-			case $bluetoothMenuSeleciton in
-				0 )
-					stayInBluetoothMenu=false
-					;;
-				1 )
-					currentUser=$(whoami)
-					if [ $currentUser == "root" ] ; then
-						packageInstalled=false
-						bluetoothInstalled=$(dpkg -l bluetooth 2>&1)
-						if [ "$bluetoothInstalled" == 'dpkg-query: no packages found matching bluetooth' ] ; then
-							packageInstalled=true
-						fi
-						bluezutilsInstalled=$(dpkg -l bluez-utils 2>&1)
-						if [ "$bluezutilsInstalled" == "dpkg-query: no packages found matching bluez-utils" ] ; then
-							packageInstalled=true
-						fi
-						bluemanInstalled=$(dpkg -l blueman 2>&1)
-						if [ "$bluemanInstalled" == "dpkg-query: no packages found matching blueman" ] ; then
-							packageInstalled=true
-						fi
-						if [ $packageInstalled == false ] ; then
-							result=$(echo "You already have all of the necessary packages installed.")
-							display_result "Bluetooth"
-						else
-							#install packages then ask to reboot
-							apt-get update > /dev/null && apt-get -y install bluetooth bluez-utils blueman > /dev/null
-							response=$(dialog --title "Reboot?" --inputbox "Missing packages were installed. Your Pi needs to be rebooted. Okay to Reboot? (Y/N)" 0 0 2>&1 1>&3)
-							response=${response,,}    # tolower
-							if [[ $response =~ ^(yes|y)$ ]] ; then
-								clear
-								shutdown -r now
-								exit
-							fi
-						fi
-					else
-						result=$(echo "You have to be running the script as root in order to install packages. Please try using sudo.")
-						display_result "Bluetooth"
-					fi
-					;;
-				2 )
-					# bluetoothMacAddressList=( $(hcitool scan 2>/dev/null | sed -e 1d | awk '{print $1}') )
-					# echo $bluetoothMacAddressList
-					# eval bluetoothDeviceList=$bluetoothMacAddressList
-					# select item in "${bluetoothDeviceList[@]}"; do
-						# bluetoothName=$(hcitool name "$i")
-						# $i = "$i""$(hcitool name "$i")"
-					# done
-					
-					
-					#new stuff i'm testing
-					
-					# Need a file to capture output of dialog command
-					echo "Scanning..."
-					bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
-					echo $bluetoothDeviceList
-					if [ "$bluetoothDeviceList" == "" ] ; then
-						result="No devices were found. Ensure device is on and try again."
-						display_result "Connect Bluetooth Device"
-					else
-						result_file=$(mktemp)
-						trap "rm $result_file" EXIT
-						readarray devs < <(hcitool scan | tail -n +2 | awk '{print NR; print $0}')
-						dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
-						exit_status=$?
-						deviceAcutallySelected=true
-						case $exit_status in
-							$DIALOG_CANCEL)
-							  deviceAcutallySelected=false
-							  ;;
-							$DIALOG_ESC)
-							  deviceAcutallySelected=false
-							  ;;
-						esac
-						if [ $deviceAcutallySelected == true ] ; then
-							arrayResult=$(<$result_file)
-							#answer={devs[$((arrayResult+1))]}
-							answer=${devs[$arrayResult+($arrayResult -1)]}
-							
-							bluetoothMacAddress=($answer)
-							
-							bluez-simple-agent hci0 "$bluetoothMacAddress"
-							bluez-test-device trusted "$bluetoothMacAddress" yes
-							bluez-test-input connect "$bluetoothMacAddress"
-							
-							result="Bluetoogh device has been connected"
-							display_result "Connect Bluetooth Device"
-						fi
-					fi
-					#/end new stuff i'm testing
-					
-					
-					# echo "Scanning..."
-					# bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
-					# if [ "$bluetoothDeviceList" == "" ] ; then
-						# result="No devices were found. Ensure device is on and try again."
-						# display_result "Connect Bluetooth Device"
-					# else
-						# bluetoothMacAddress=$(dialog --title "Connect Bluetooth Device" --backtitle "Pi Assist" --inputbox "$bluetoothDeviceList \n\nEnter the mac address of the device you would like to conect to:" 0 0 2>&1 1>&3);
-						# if [ "$bluetoothMacAddress" != "" ] ; then
-							# bluez-simple-agent hci0 "$bluetoothMacAddress"
-							# bluez-test-device trusted "$bluetoothMacAddress" yes
-							# bluez-test-input connect "$bluetoothMacAddress"
-						# fi
-					# fi
-					;;
-				3 )				
-					bluetoothDeviceList=$(bluez-test-device list)
-					if [ "$bluetoothDeviceList" == "" ] ; then
-						result="There are no devices to remove."
-						display_result "Remove Bluetooth Device"
-					else
-						result_file=$(mktemp)
-						trap "rm $result_file" EXIT
-						readarray devs < <(bluez-test-device list | awk '{print NR; print $0}')
-						dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
-						exit_status=$?
-						deviceAcutallySelected=true
-						case $exit_status in
-							$DIALOG_CANCEL)
-							  deviceAcutallySelected=false
-							  ;;
-							$DIALOG_ESC)
-							  deviceAcutallySelected=false
-							  ;;
-						esac
-						if [ $deviceAcutallySelected == true ] ; then
-							arrayResult=$(<$result_file)
-							#answer={devs[$((arrayResult+1))]}
-							answer=${devs[$arrayResult+($arrayResult -1)]}
-							bluetoothMacAddress=($answer)
-							
-							if [ "$bluetoothMacAddress" != "" ] ; then
-								removeBluetoothDevice=$(bluez-test-device remove $bluetoothMacAddress)
-								if [ "$removeBluetoothDevice" == "" ] ; then
-									result="Device Removed"
-									display_result "Removing Bluetooth Device"
-								else
-									result="An error occured removing the bluetooth device. Please ensure you typed the mac address correctly."
-									display_result "Removing Bluetooth Device"
-								fi
-							fi
-						fi
-					fi
-					;;
-				4 )
-					registeredDevices="There are no registered devices"
-					if [ "$(bluez-test-device list)" != "" ] ; then
-						registeredDevices=$(bluez-test-device list)
-					fi
-					activeConnections="There are no active connections"
-					if [ "$(hcitool con)" != "Connections:" ] ; then
-						activeConnections=$(hcitool con | sed -e 1d)
-					fi
-										
-					result=$(echo ""; echo "Registered Devices:"; echo ""; echo "$registeredDevices"; echo ""; echo ""; echo "Active Connections:"; echo ""; echo "$activeConnections")
-					display_result "Registered Devices & Active Connections"
-					;;
-			esac
-		done
+		showBluetoothMenuOptions
 		;;
 	3 )
-		stayInControllerMenu=true
-		while $stayInControllerMenu; do
-			exec 3>&1
-			controllerMenuSeleciton=$(dialog \
-				--backtitle "Pi Assist" \
-				--title "Controller" \
-				--clear \
-				--cancel-label "Back" \
-				--menu "Please select:" $HEIGHT $WIDTH 3 \
-				"1" "Configure Game Controller for RetroArch Emulators (Root Required)" \
-				"2" "Setup PS3 Controller over Bluetooth (Root Required) - Work in Progress" \
-				2>&1 1>&3)
-			exit_status=$?
-			case $exit_status in
-				$DIALOG_CANCEL)
-				  stayInControllerMenu=false
-				  ;;
-				$DIALOG_ESC)
-				  stayInControllerMenu=false
-				  ;;
-			esac
-			case $controllerMenuSeleciton in
-				0 )
-				  stayInControllerMenu=false
-				  ;;
-				1 )
-					currentUser=$(whoami)
-					if [ $currentUser == "root" ] ; then
-						joyconfigLocation="/opt/retropie/configs/all/retroarch.cfg"
-						response=$(dialog --title "Create Backup?" --inputbox "Would you like to create a backup of your current retroarch config?" 0 0 2>&1 1>&3)
-						response=${response,,}    # tolower
-						if [[ $response =~ ^(yes|y)$ ]] ; then
-							if [ ! -f $joyconfigLocation"_bak" ] ; then
-								cp $joyconfigLocation $joyconfigLocation"_bak"
-							else
-								backupExistsResponse=$(dialog --title "Overwrite Backup?" --inputbox "A backup currently exists. Do you want to overwrite it?" 0 0 2>&1 1>&3)
-								backupExistsResponse=${backupExistsResponse,,}    # tolower
-								if [[ $backupExistsResponse =~ ^(yes|y)$ ]] ; then
-									cp $joyconfigLocation $joyconfigLocation"_bak"
-								fi
-								/opt/retropie/emulators/retroarch/retroarch-joyconfig -o $joyconfigLocation
-							fi		
-						else
-							/opt/retropie/emulators/retroarch/retroarch-joyconfig -o $joyconfigLocation
-						fi
-					else
-						result=$(echo "You have to be running the script as root in order to configure controllers. Please try using sudo.")
-						display_result "Configure Controller"
-					fi
-					;;
-				2 )
-					currentUser=$(whoami)
-					if [ $currentUser == "root" ] ; then
-						if [ command -v >/dev/null 2>&1 || ] ; then
-							wget http://www.pabr.org/sixlinux/sixpair.c
-							gcc -o sixpair sixpair.c -lusb
-							
-							wget http://sourceforge.net/projects/qtsixa/files/QtSixA%201.5.1/QtSixA-1.5.1-src.tar.gz
-							tar xfvz QtSixA-1.5.1-src.tar.gz
-							cd QtSixA-1.5.1/sixad
-							make
-							mkdir -p /var/lib/sixad/profiles
-							checkinstall
-							
-							update-rc.d sixad defaults
-							
-							echo "enable_leds 1" >> /var/lib/sixad/profiles/default
-							echo "enable_joystick 1" >> /var/lib/sixad/profiles/default
-							echo "enable_input 0" >> /var/lib/sixad/profiles/default
-							echo "enable_remote 0" >> /var/lib/sixad/profiles/default
-							echo "enable_rumble 1" >> /var/lib/sixad/profiles/default
-							echo "enable_timeout 0" >> /var/lib/sixad/profiles/default
-							echo "led_n_auto 1" >> /var/lib/sixad/profiles/default
-							echo "led_n_number 1" >> /var/lib/sixad/profiles/default
-							echo "led_anim 1" >> /var/lib/sixad/profiles/default
-							echo "enable_buttons 1" >> /var/lib/sixad/profiles/default
-							echo "enable_sbuttons 1" >> /var/lib/sixad/profiles/default
-							echo "enable_axis 1" >> /var/lib/sixad/profiles/default
-							echo "enable_accel 0" >> /var/lib/sixad/profiles/default
-							echo "enable_accon 0" >> /var/lib/sixad/profiles/default
-							echo "enable_speed 0" >> /var/lib/sixad/profiles/default
-							echo "enable_pos 0" >> /var/lib/sixad/profiles/default
-							
-							askToRebootMenuSelection=$(dialog \
-								--title "Reboot?" --clear \
-								--yesno "Missing prerequisites were installed. Your Pi needs to be rebooted. Okay to Reboot?" $HEIGHT $WIDTH \
-								2>&1 1>&3)
-							if [ "$askToRebootMenuSelection" == 0 ] ; then
-								shutdown -r now
-							fi
-						fi
-						
-						result=$(echo "Please plugin the PS3 controller you would like to pair via USB.")
-						display_result "PS3 Controller"
-						
-						./sixpair
-
-						if [ status sixad ] ; then
-							service sixad start
-						fi
-						
-					else
-						result=$(echo "You have to be running the script as root in order to install PS3 controller prerequisites. Please try using sudo.")
-						display_result "Configure Controller"
-					fi
-					;;
-			esac
-		done
+		showControllerMenuOptions
 		;;
 	4 )
-		stayInSystemInfoMenu=true
-		while $stayInSystemInfoMenu; do
-			exec 3>&1
-			systemInfoMenuSeleciton=$(dialog \
-				--backtitle "Pi Assist" \
-				--title "System Information" \
-				--clear \
-				--cancel-label "Back" \
-				--menu "Please select:" $HEIGHT $WIDTH 3 \
-				"1" "Display System Information" \
-				"2" "Display Disk Space" \
-				"3" "Display Home Space Utilization" \
-				2>&1 1>&3)
-			exit_status=$?
-			case $exit_status in
-				$DIALOG_CANCEL)
-				  stayInSystemInfoMenu=false
-				  ;;
-				$DIALOG_ESC)
-				  stayInSystemInfoMenu=false
-				  ;;
-			esac
-			case $systemInfoMenuSeleciton in
-				0 )
-				  stayInSystemInfoMenu=false
-				  ;;
-				1 )
-					result=$(echo "Hostname:  $HOSTNAME\n"; echo "Uptime:"; uptime | sed 's/,.*//'; echo "\nLoad Average: "; uptime | grep -o "load.*" | cut -c 15-; echo "\nTemperature: "; vcgencmd measure_temp | cut -c 6-)
-					display_result "System Information"
-					;;
-				2 )
-				  result=$(df -h)
-				  display_result "Disk Space"
-				  ;;
-				3 )
-				  if [[ $(id -u) -eq 0 ]]; then
-					result=$(du -sh /home/* 2> /dev/null)
-					display_result "Home Space Utilization (All Users)"
-				  else
-					result=$(du -sh $HOME 2> /dev/null)
-					display_result "Home Space Utilization ($USER)"
-				  fi
-				  ;;
-			esac
-		done
+		showSystemInfoOptions
 		;;
 	5 )
-		currentUser=$(whoami)
-		if [ $currentUser == "root" ] ; then
-			emulationStationConfig='/etc/emulationstation/es_systems.cfg'
-			if grep -q piassist "$emulationStationConfig"; then
-				result="PiAssist has already been added to Emulation Station"
-				display_result "Add PiAssist to Emulation Station"
-			else
-				piassistConfigLocation="/home/pi/piassist_es.cfg"
-				cat > "$piassistConfigLocation" << EOF
-  </system>
-  <system>
-    <name>piassist</name>
-    <fullname>PiAssist</fullname>
-    <path>~/PiAssist/</path>
-    <extension>.sh</extension>
-    <command>sudo /home/pi/PiAssist.sh %ROM%</command>
-    <platform/>
-    <theme>piassist</theme>
-EOF
-				sed -i "/<theme>pcengine<\/theme>/r $piassistConfigLocation" "$emulationStationConfig"
-				rm "$piassistConfigLocation"
-				
-				#Download Theme from GitHub and place it in the emulation station themes directory (/etc/emulationstation/themes/simple)
-
-				piassitThemeLocation="/etc/emulationstation/themes/simple/piassist/"
-				mkdir "$piassitThemeLocation"
-				mkdir "$piassitThemeLocation"/art/
-				wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/theme.xml -q -O "$piassitThemeLocation"/theme.xml
-				wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist.png -q -O "$piassitThemeLocation"/art/piassist.png
-				wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist_pixelated.png -q -O "$piassitThemeLocation"/art/piassist_pixelated.png
-				
-				mkdir /home/pi/PiAssist/
-				touch /home/pi/PiAssist/Launch\ PiAssist.sh
-
-				result=$(echo "PiAssist has been added to the Emulation Station menu")
-				display_result "Add PiAssist to Emulation Station"				
-			fi
-		else
-			result=$(echo "You have to be running the script as root in order to add PiAssist to emulation station. Please try using sudo.")
-			display_result "Add PiAssist to Emulation Station"
-		fi
+		addPiAssistToEmulationStation
 		;;
 	6 )
-		currentUser=$(whoami)
-		if [ "$currentUser" == "root" ] ; then
-			stayInPowerOptionsMenu=true
-			while $stayInPowerOptionsMenu; do
-				exec 3>&1
-				systemInfoMenuSeleciton=$(dialog \
-					--backtitle "Pi Assist" \
-					--title "Power Menu" \
-					--clear \
-					--cancel-label "Back" \
-					--menu "Please select:" $HEIGHT $WIDTH 2 \
-					"1" "Shutdown" \
-					"2" "Reboot" \
-					2>&1 1>&3)
-				exit_status=$?
-				case $exit_status in
-					$DIALOG_CANCEL)
-					  stayInPowerOptionsMenu=false
-					  ;;
-					$DIALOG_ESC)
-					  stayInPowerOptionsMenu=false
-					  ;;
-				esac
-				case $systemInfoMenuSeleciton in
-					0 )
-					  stayInPowerOptionsMenu=false
-					  ;;
-					1 )
-						shutdown -h now
-						;;
-					2 )
-						shutdown -r now
-						;;
-				esac
-			done
-		else
-			result=$(echo "You have to be running the script as root in order to access the power menu. Please try using sudo.")
-			display_result "Configure Controller"
-		fi
+		showPowerMenuOptions
 		;;
 	7 )
-		homeDirectory="/home/pi"
-		if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O "$homeDirectory"/PiAssist.sh.new ; then
-			result="An error occurred downloading the update."
-			display_result "Update PiAssist"
-		else
-			chmod +x "$homeDirectory"/PiAssist.sh.new
-		cat > "$homeDirectory"/updateScript.sh << EOF
-#!/bin/bash
-if mv "PiAssist.sh.new" "PiAssist.sh"; then
-  rm -- \$0
-  dialog --title "Update Completed" --no-collapse --msgbox "Update Completed. You need to restart the script." 0 0
-  clear
-else
-  dialog --title "Update Failed!" --no-collapse --msgbox "There was an issue updating the script" 0 0
-  clear
-fi
-EOF
-
-		exec /bin/bash "$homeDirectory"/updateScript.sh
-		exit
-		fi
+		updatePiAssist
 		;;
 	esac
 done
