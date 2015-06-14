@@ -169,21 +169,8 @@ showBluetoothMenuOptions() {
 				fi
 				;;
 			2 )
-				# bluetoothMacAddressList=( $(hcitool scan 2>/dev/null | sed -e 1d | awk '{print $1}') )
-				# echo $bluetoothMacAddressList
-				# eval bluetoothDeviceList=$bluetoothMacAddressList
-				# select item in "${bluetoothDeviceList[@]}"; do
-					# bluetoothName=$(hcitool name "$i")
-					# $i = "$i""$(hcitool name "$i")"
-				# done
-				
-				
-				#new stuff i'm testing
-				
-				# Need a file to capture output of dialog command
 				echo "Scanning..."
 				bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
-				echo $bluetoothDeviceList
 				if [ "$bluetoothDeviceList" == "" ] ; then
 					result="No devices were found. Ensure device is on and try again."
 					display_result "Connect Bluetooth Device"
@@ -217,22 +204,6 @@ showBluetoothMenuOptions() {
 						display_result "Connect Bluetooth Device"
 					fi
 				fi
-				#/end new stuff i'm testing
-				
-				
-				# echo "Scanning..."
-				# bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
-				# if [ "$bluetoothDeviceList" == "" ] ; then
-					# result="No devices were found. Ensure device is on and try again."
-					# display_result "Connect Bluetooth Device"
-				# else
-					# bluetoothMacAddress=$(dialog --title "Connect Bluetooth Device" --backtitle "Pi Assist" --inputbox "$bluetoothDeviceList \n\nEnter the mac address of the device you would like to conect to:" 0 0 2>&1 1>&3);
-					# if [ "$bluetoothMacAddress" != "" ] ; then
-						# bluez-simple-agent hci0 "$bluetoothMacAddress"
-						# bluez-test-device trusted "$bluetoothMacAddress" yes
-						# bluez-test-input connect "$bluetoothMacAddress"
-					# fi
-				# fi
 				;;
 			3 )				
 				bluetoothDeviceList=$(bluez-test-device list)
@@ -577,8 +548,9 @@ showMiscellaneousMenuOptions() {
 				--title "Miscellaneous" \
 				--clear \
 				--cancel-label "Back" \
-				--menu "Please select:" $HEIGHT $WIDTH 1 \
+				--menu "Please select:" $HEIGHT $WIDTH 2 \
 				"1" "Change Keyboard Language/Configuration" \
+				"2" "ROM Scraper Created by SSELPH" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
@@ -595,6 +567,65 @@ showMiscellaneousMenuOptions() {
 					;;
 				1 )
 					dpkg-reconfigure keyboard-configuration
+					;;					
+				2 )
+					#if scraper doesn't exist then download it
+					if [ ! -f /usr/local/bin/scraper ] ; then
+						echo "Downloading and Installing Scraper created by SSELPH..."
+						#if raspberrypi1 then download the build for raspberrypi1
+						if [ raspberrypi1 gt 1 ] ; then
+							wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi.zip -q
+							unzip scraper_rpi.zip scraper -d /usr/local/bin/
+							rm scraper_rpi.zip
+						else
+							wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi2.zip -q
+							unzip scraper_rpi2.zip scraper -d /usr/local/bin/
+							rm scraper_rpi2.zip
+						fi
+					fi
+					
+					#show scraper menu - ask user which console they would like to scrape					
+					romFolderList=$(ls -d /home/pi/RetroPie/roms/*/)
+					if [ "$romFolderList" == "" ] ; then
+						result="No rom folders were found. Not quite sure how that's possible..."
+						display_result "ROM Scraper"
+					else
+						result_file=$(mktemp)
+						trap "rm $result_file" EXIT
+						readarray devs < <(ls -d /home/pi/RetroPie/roms/*/ | awk '{print NR; print $0}')
+						dialog --menu "Select ROM Folder" 20 80 15 "${devs[@]}" 2> $result_file
+						exit_status=$?
+						romFolderAcutallySelected=true
+						case $exit_status in
+							$DIALOG_CANCEL)
+							  romFolderAcutallySelected=false
+							  ;;
+							$DIALOG_ESC)
+							  romFolderAcutallySelected=false
+							  ;;
+						esac
+						if [ $romFolderAcutallySelected == true ] ; then
+							arrayResult=$(<$result_file)
+							#answer={devs[$((arrayResult+1))]}
+							answer=${devs[$arrayResult+($arrayResult -1)]}
+							
+							romFolder=($answer)
+							
+							gameListXMLLocation="/home/pi/.emulationstation/gamelists/$(basename $romFolder)/gamelist.xml"
+							scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
+							
+							#the scraper doesn't include the opening XML tag that is required
+							if [ grep -q "<?xml" "$gameListXMLLocation" ] ; then
+								#no action needs to occur
+								echo "" > /dev/null
+							else
+								echo '<?xml version="1.0"?>' | cat - "$gameListXMLLocation" > temp && mv temp "$gameListXMLLocation"
+							fi
+							
+							result="ROMS have been scraped. You will need to restart emulation station for the changes to be seen."
+							display_result "ROM Scraper Created by SSELPH"
+						fi
+					fi
 					;;
 			esac
 		done
