@@ -27,3 +27,8 @@ Here's the menu options currently available to let you know what the system is c
 		
 
 Please see the [Wiki](https://github.com/Death259/PiAssist/wiki/) for more detail explanations and instructions.
+
+
+
+***
+This project utilizes [scraper](https://github.com/sselph/scraper) which was created by [SSELPH](https://github.com/sselph/)
