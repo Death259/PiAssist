@@ -573,14 +573,20 @@ showMiscellaneousMenuOptions() {
 					if [ ! -f /usr/local/bin/scraper ] ; then
 						echo "Downloading and Installing Scraper created by SSELPH..."
 						#if raspberrypi1 then download the build for raspberrypi1
-						if [ raspberrypi1 gt 1 ] ; then
-							wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi.zip -q
-							unzip scraper_rpi.zip scraper -d /usr/local/bin/
-							rm scraper_rpi.zip
+						if grep -q piassist "$emulationStationConfig"; then
+							result="PiAssist has already been added to Emulation Station"
+							display_result "Add PiAssist to Emulation Station"
 						else
+						
+						fi
+						if [ cat /proc/cpuinfo | grep ARMv7 ] ; then
 							wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi2.zip -q
 							unzip scraper_rpi2.zip scraper -d /usr/local/bin/
 							rm scraper_rpi2.zip
+						else
+							wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi.zip -q
+							unzip scraper_rpi.zip scraper -d /usr/local/bin/
+							rm scraper_rpi.zip
 						fi
 					fi
 					
@@ -621,6 +627,8 @@ showMiscellaneousMenuOptions() {
 							else
 								echo '<?xml version="1.0"?>' | cat - "$gameListXMLLocation" > temp && mv temp "$gameListXMLLocation"
 							fi
+							
+							chown pi:pi "$gameListXMLLocation"
 							
 							result="ROMS have been scraped. You will need to restart emulation station for the changes to be seen."
 							display_result "ROM Scraper Created by SSELPH"
