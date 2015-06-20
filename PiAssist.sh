@@ -602,6 +602,8 @@ showMiscellaneousMenuOptions() {
 							gameListXMLLocation="/home/pi/.emulationstation/gamelists/$(basename $romFolder)/gamelist.xml"
 							scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
 							
+							chown pi:pi "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)"
+							
 							#the scraper doesn't include the opening XML tag that is required
 							if grep -q "<?xml" "$gameListXMLLocation" ; then
 								#no action needs to occur
@@ -611,6 +613,8 @@ showMiscellaneousMenuOptions() {
 							fi
 							
 							chown pi:pi "$gameListXMLLocation"
+							
+							find "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -exec chown pi:pi {} +
 							
 							result="ROMS have been scraped. You will need to restart emulation station for the changes to be seen."
 							display_result "ROM Scraper Created by SSELPH"
