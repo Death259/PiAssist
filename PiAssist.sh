@@ -7,21 +7,21 @@ WIDTH=0
 emulationStationConfig='/etc/emulationstation/es_systems.cfg'
 
 display_result() {
-  dialog --title "$1" \
-    --no-collapse \
+  whiptail --title "$1" \
+	--backtitle "Pi Assist" \
+    --clear \
     --msgbox "$result" 0 0
 }
-
 
 showNetworkMenuOptions() {
 	stayInNetworkMenu=true
 	while $stayInNetworkMenu; do
 		exec 3>&1
-		networkMenuSeleciton=$(dialog \
+		networkMenuSeleciton=$(whiptail \
 			--backtitle "Pi Assist" \
 			--title "System Information" \
 			--clear \
-			--cancel-label "Back" \
+			--cancel-button "Back" \
 			--menu "Please select:" $HEIGHT $WIDTH 3 \
 			"1" "Display Network Information" \
 			"2" "Scan for WiFI Networks (Root Required)" \
@@ -60,19 +60,16 @@ showNetworkMenuOptions() {
 				if [ $currentUser == "root" ] ; then
 					ifconfig wlan0 up
 					wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
-					wifiSSID=$(dialog --title "WiFi Network SSID" --backtitle "Pi Assist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+					wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "Pi Assist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
 					if [ "$wifiSSID" != "" ] ; then
 						actuallyConnectToWifi=false
 						networkInterfacesConfigLocation="/etc/network/interfaces"
-						response=$(dialog --title "Create Backup?" --inputbox "Would you like to create a backup of your current network interfaces config?" 0 0 2>&1 1>&3)
-						response=${response,,}    # tolower
-						if [[ $response =~ ^(yes|y)$ ]] ; then
+						
+						if (whiptail --title "Create Backup?" --yesno "Would you like to create a backup of your current network interfaces config?" 0 0) then
 							if [ ! -f $networkInterfacesConfigLocation"_bak" ] ; then
 								cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
 							else
-								backupExistsResponse=$(dialog --title "Overwrite Backup?" --inputbox "A backup currently exists. Do you want to overwrite it?" 0 0 2>&1 1>&3)
-								backupExistsResponse=${backupExistsResponse,,}    # tolower
-								if [[ $backupExistsResponse =~ ^(yes|y)$ ]] ; then
+								if (whiptail --title "Overwrite Backup?" --yesno "A backup currently exists. Do you want to overwrite it?" 0 0) then
 									cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
 								fi
 								actuallyConnectToWifi=true
@@ -81,7 +78,7 @@ showNetworkMenuOptions() {
 							actuallyConnectToWifi=true
 						fi
 						if [ $actuallyConnectToWifi == true ] ; then
-							wifiPassword=$(dialog --title "WiFi Network Password" --backtitle "Pi Assist" --insecure --passwordbox "Enter the password of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+							wifiPassword=$(whiptail --title "WiFi Network Password" --backtitle "Pi Assist" --insecure --passwordbox "Enter the password of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
 							echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet dhcp\n\twpa-ssid "'$wifiSSID'"\n\twpa-psk "'$wifiPassword'"' > $networkInterfacesConfigLocation
 							ifdown wlan0 > /dev/null 2>&1
 							ifup wlan0 > /dev/null 2>&1
@@ -109,11 +106,11 @@ showBluetoothMenuOptions() {
 	stayInBluetoothMenu=true
 	while $stayInBluetoothMenu; do
 		exec 3>&1
-		bluetoothMenuSeleciton=$(dialog \
+		bluetoothMenuSeleciton=$(whiptail \
 			--backtitle "Pi Assist" \
 			--title "System Information" \
 			--clear \
-			--cancel-label "Back" \
+			--cancel-button "Back" \
 			--menu "Please select:" $HEIGHT $WIDTH 4 \
 			"1" "Install Bluetooth Packages (Root Required)" \
 			"2" "Connect Bluetooth Device" \
@@ -155,9 +152,7 @@ showBluetoothMenuOptions() {
 					else
 						#install packages then ask to reboot
 						apt-get update > /dev/null && apt-get -y install bluetooth bluez-utils blueman > /dev/null
-						response=$(dialog --title "Reboot?" --inputbox "Missing packages were installed. Your Pi needs to be rebooted. Okay to Reboot? (Y/N)" 0 0 2>&1 1>&3)
-						response=${response,,}    # tolower
-						if [[ $response =~ ^(yes|y)$ ]] ; then
+						if (whiptail --title "Reboot?" --yesno "Missing packages were installed. Your Pi needs to be rebooted. Okay to Reboot?" 0 0) then
 							clear
 							shutdown -r now
 							exit
@@ -200,7 +195,7 @@ showBluetoothMenuOptions() {
 						bluez-test-device trusted "$bluetoothMacAddress" yes
 						bluez-test-input connect "$bluetoothMacAddress"
 						
-						result="Bluetoogh device has been connected"
+						result="Bluetooth device has been connected"
 						display_result "Connect Bluetooth Device"
 					fi
 				fi
@@ -265,11 +260,11 @@ showControllerMenuOptions() {
 	stayInControllerMenu=true
 	while $stayInControllerMenu; do
 		exec 3>&1
-		controllerMenuSeleciton=$(dialog \
+		controllerMenuSeleciton=$(whiptail \
 			--backtitle "Pi Assist" \
 			--title "Controller" \
 			--clear \
-			--cancel-label "Back" \
+			--cancel-button "Back" \
 			--menu "Please select:" $HEIGHT $WIDTH 3 \
 			"1" "Configure Game Controller for RetroArch Emulators (Root Required)" \
 			"2" "Setup PS3 Controller over Bluetooth (Root Required) - Work in Progress" \
@@ -291,15 +286,11 @@ showControllerMenuOptions() {
 				currentUser=$(whoami)
 				if [ $currentUser == "root" ] ; then
 					joyconfigLocation="/opt/retropie/configs/all/retroarch.cfg"
-					response=$(dialog --title "Create Backup?" --inputbox "Would you like to create a backup of your current retroarch config?" 0 0 2>&1 1>&3)
-					response=${response,,}    # tolower
-					if [[ $response =~ ^(yes|y)$ ]] ; then
+					if (whiptail --title "Create Backup?" --yesno "Would you like to create a backup of your current retroarch config?" 0 0) then
 						if [ ! -f $joyconfigLocation"_bak" ] ; then
 							cp $joyconfigLocation $joyconfigLocation"_bak"
 						else
-							backupExistsResponse=$(dialog --title "Overwrite Backup?" --inputbox "A backup currently exists. Do you want to overwrite it?" 0 0 2>&1 1>&3)
-							backupExistsResponse=${backupExistsResponse,,}    # tolower
-							if [[ $backupExistsResponse =~ ^(yes|y)$ ]] ; then
+							if (whiptail --title "Overwrite Backup?" --yesno "A backup currently exists. Do you want to overwrite it?" 0 0) then
 								cp $joyconfigLocation $joyconfigLocation"_bak"
 							fi
 							/opt/retropie/emulators/retroarch/retroarch-joyconfig -o $joyconfigLocation
@@ -345,11 +336,7 @@ showControllerMenuOptions() {
 						echo "enable_speed 0" >> /var/lib/sixad/profiles/default
 						echo "enable_pos 0" >> /var/lib/sixad/profiles/default
 						
-						askToRebootMenuSelection=$(dialog \
-							--title "Reboot?" --clear \
-							--yesno "Missing prerequisites were installed. Your Pi needs to be rebooted. Okay to Reboot?" $HEIGHT $WIDTH \
-							2>&1 1>&3)
-						if [ "$askToRebootMenuSelection" == 0 ] ; then
+						if (whiptail --title "Reboot?" --yesno "Missing prerequisites were installed. Your Pi needs to be rebooted. Okay to Reboot?" 0 0) then
 							shutdown -r now
 						fi
 					fi
@@ -376,11 +363,11 @@ showSystemInfoOptions() {
 	stayInSystemInfoMenu=true
 	while $stayInSystemInfoMenu; do
 		exec 3>&1
-		systemInfoMenuSeleciton=$(dialog \
+		systemInfoMenuSeleciton=$(whiptail \
 			--backtitle "Pi Assist" \
 			--title "System Information" \
 			--clear \
-			--cancel-label "Back" \
+			--cancel-button "Back" \
 			--menu "Please select:" $HEIGHT $WIDTH 3 \
 			"1" "Display System Information" \
 			"2" "Display Disk Space" \
@@ -440,8 +427,8 @@ addPiAssistToEmulationStation() {
 	currentUser=$(whoami)
 	if [ $currentUser == "root" ] ; then
 		if grep -q piassist "$emulationStationConfig"; then
-			result="PiAssist has already been added to Emulation Station"
-			display_result "Add PiAssist to Emulation Station"
+			result="Pi Assist has already been added to Emulation Station"
+			display_result "Add Pi Assist to Emulation Station"
 		else
 			piassistConfigLocation="/home/pi/piassist_es.cfg"
 			cat > "$piassistConfigLocation" << EOF
@@ -460,12 +447,12 @@ EOF
 			
 			addAndUpdateEmulationStationEntries
 
-			result=$(echo "PiAssist has been added to the Emulation Station menu")
-			display_result "Add PiAssist to Emulation Station"				
+			result=$(echo "Pi Assist has been added to the Emulation Station menu")
+			display_result "Add Pi Assist to Emulation Station"				
 		fi
 	else
-		result=$(echo "You have to be running the script as root in order to add PiAssist to emulation station. Please try using sudo.")
-		display_result "Add PiAssist to Emulation Station"
+		result=$(echo "You have to be running the script as root in order to add Pi Assist to emulation station. Please try using sudo.")
+		display_result "Add Pi Assist to Emulation Station"
 	fi
 }
 
@@ -475,11 +462,11 @@ showPowerMenuOptions() {
 		stayInPowerOptionsMenu=true
 		while $stayInPowerOptionsMenu; do
 			exec 3>&1
-			systemInfoMenuSeleciton=$(dialog \
+			systemInfoMenuSeleciton=$(whiptail \
 				--backtitle "Pi Assist" \
 				--title "Power Menu" \
 				--clear \
-				--cancel-label "Back" \
+				--cancel-button "Back" \
 				--menu "Please select:" $HEIGHT $WIDTH 2 \
 				"1" "Shutdown" \
 				"2" "Reboot" \
@@ -512,12 +499,12 @@ showPowerMenuOptions() {
 }
 
 updatePiAssist() {
-	echo "Updating PiAssist..."
+	echo "Updating Pi Assist..."
 	
 	homeDirectory="/home/pi"
 	if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O "$homeDirectory/PiAssist.sh.new" ; then
 		result="An error occurred downloading the update."
-		display_result "Update PiAssist"
+		display_result "Update Pi Assist"
 	else
 		chmod +x "$homeDirectory/PiAssist.sh.new"
 		cat > "$homeDirectory/updateScript.sh" << EOF
@@ -543,14 +530,15 @@ showMiscellaneousMenuOptions() {
 		stayInMiscellaneousOptionsMenu=true
 		while $stayInMiscellaneousOptionsMenu; do
 			exec 3>&1
-			miscellaneousMenuSeleciton=$(dialog \
+			miscellaneousMenuSeleciton=$(whiptail \
 				--backtitle "Pi Assist" \
 				--title "Miscellaneous" \
 				--clear \
-				--cancel-label "Back" \
-				--menu "Please select:" $HEIGHT $WIDTH 2 \
+				--cancel-button "Back" \
+				--menu "Please select:" $HEIGHT $WIDTH 3 \
 				"1" "Change Keyboard Language/Configuration" \
 				"2" "ROM Scraper Created by SSELPH" \
+				"3" "Search for File by File Name" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
@@ -573,12 +561,6 @@ showMiscellaneousMenuOptions() {
 					if [ ! -f /usr/local/bin/scraper ] ; then
 						echo "Downloading and Installing Scraper created by SSELPH..."
 						#if raspberrypi1 then download the build for raspberrypi1
-						if grep -q piassist "$emulationStationConfig"; then
-							result="PiAssist has already been added to Emulation Station"
-							display_result "Add PiAssist to Emulation Station"
-						else
-						
-						fi
 						if [ cat /proc/cpuinfo | grep ARMv7 ] ; then
 							wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi2.zip -q
 							unzip scraper_rpi2.zip scraper -d /usr/local/bin/
@@ -635,6 +617,34 @@ showMiscellaneousMenuOptions() {
 						fi
 					fi
 					;;
+					3 )
+						fileNameToSearchFor=$(whiptail --title "Search for File by File Name" --backtitle "Pi Assist" --inputbox "Enter the file name you would like to search for:" 0 0 2>&1 1>&3);
+						#searchOptions=$(dialog --backtitle "Pi Assist" --checklist "Search Options:" "Match Whole Words Only" off 2 "Match Case" off 3 Slackware off 0 0 2>&1 1>&3);
+						
+						#searchOptions=$(dialog --checklist "Choose toppings:" 10 40 3 1 Cheese on 2 "Tomato Sauce" on 3 Anchovies off);
+						#dialog --backtitle "Pi Assist" --checklist "Select CPU type:" 10 40 4 1 "Match Case" off 2 "Match Whole Words Only" off
+						searchOptions=$(whiptail --backtitle "Pi Assist" --title "Search Options" --checklist \
+						"Choose search options:" 0 0 2 \
+						"1" "Match Case" OFF \
+						"2" "Match Whole Words Only" OFF \
+						3>&1 1>&2 2>&3)
+						
+						findCommand="find /"
+						
+						if [[ $searchOptions == *"1"* ]] ; then
+							findCommand="$findCommand -name "
+						else
+							findCommand="$findCommand -iname"
+						fi
+												
+						if [[ $searchOptions == *"2"* ]] ; then
+							findCommand="$findCommand '$fileNameToSearchFor'"
+						else
+							findCommand="$findCommand '*$fileNameToSearchFor*'"
+						fi
+
+						eval "$findCommand" | less
+					;;
 			esac
 		done
 	else
@@ -660,13 +670,14 @@ esac
 #Perform dialog functions to present users the GUI
 #########
 
+
 while true; do
   exec 3>&1
-  maineMenuSelection=$(dialog \
-    --backtitle "Pi Assist" \
+  maineMenuSelection=$(whiptail \
+	--backtitle "Pi Assist" \
+	--clear \
     --title "Main Menu" \
-    --clear \
-    --cancel-label "Exit" \
+	--cancel-button "Exit" \
     --menu "Please select:" $HEIGHT $WIDTH 8 \
     "1" "Network (WiFi/Ethernet)" \
     "2" "Bluetooth" \
