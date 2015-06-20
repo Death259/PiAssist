@@ -603,7 +603,7 @@ showMiscellaneousMenuOptions() {
 							scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
 							
 							#the scraper doesn't include the opening XML tag that is required
-							if [ grep -q "<?xml" "$gameListXMLLocation" ] ; then
+							if grep -q "<?xml" "$gameListXMLLocation" ; then
 								#no action needs to occur
 								echo "" > /dev/null
 							else
