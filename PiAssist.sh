@@ -78,18 +78,20 @@ showNetworkMenuOptions() {
 							actuallyConnectToWifi=true
 						fi
 						if [ $actuallyConnectToWifi == true ] ; then
-							wifiPassword=$(whiptail --title "WiFi Network Password" --backtitle "Pi Assist" --insecure --passwordbox "Enter the password of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
-							echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet dhcp\n\twpa-ssid "'$wifiSSID'"\n\twpa-psk "'$wifiPassword'"' > $networkInterfacesConfigLocation
-							ifdown wlan0 > /dev/null 2>&1
-							ifup wlan0 > /dev/null 2>&1
-							
-							inetAddress=$(ifconfig wlan0 | grep "inet addr.*")
-							if [ "$inetAddress" != "" ] ; then
-								result=$(echo "You are now connected to $wifiSSID.")
-								display_result "WiFi Network"
-							else
-								result=$(echo "There was an issue trying to connect to $wifiSSID. Please ensure you typed the SSID and password correctly.")
-								display_result "WiFi Network"
+							wifiPassword=$(whiptail --title "WiFi Network Password" --backtitle "Pi Assist" --passwordbox "Enter the password of the WiFi network you would like to connect to:" 10 70 2>&1 1>&3);
+							if [ ! "$wifiPassword" == "" ] ; then
+								echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet dhcp\n\twpa-ssid "'$wifiSSID'"\n\twpa-psk "'$wifiPassword'"' > $networkInterfacesConfigLocation
+								ifdown wlan0 > /dev/null 2>&1
+								ifup wlan0 > /dev/null 2>&1
+								
+								inetAddress=$(ifconfig wlan0 | grep "inet addr.*")
+								if [ "$inetAddress" != "" ] ; then
+									result=$(echo "You are now connected to $wifiSSID.")
+									display_result "WiFi Network"
+								else
+									result=$(echo "There was an issue trying to connect to $wifiSSID. Please ensure you typed the SSID and password correctly.")
+									display_result "WiFi Network"
+								fi
 							fi
 						fi
 					fi
@@ -557,67 +559,75 @@ showMiscellaneousMenuOptions() {
 					dpkg-reconfigure keyboard-configuration
 					;;					
 				2 )
-					#if scraper doesn't exist then download it
-					if [ ! -f /usr/local/bin/scraper ] ; then
-						echo "Downloading and Installing Scraper created by SSELPH..."
-						#if raspberrypi1 then download the build for raspberrypi1
-						if [ cat /proc/cpuinfo | grep ARMv7 ] ; then
-							wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi2.zip -q
-							unzip scraper_rpi2.zip scraper -d /usr/local/bin/
-							rm scraper_rpi2.zip
-						else
-							wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi.zip -q
-							unzip scraper_rpi.zip scraper -d /usr/local/bin/
-							rm scraper_rpi.zip
-						fi
-					fi
 					
-					#show scraper menu - ask user which console they would like to scrape					
-					romFolderList=$(ls -d /home/pi/RetroPie/roms/*/)
-					if [ "$romFolderList" == "" ] ; then
-						result="No rom folders were found. Not quite sure how that's possible..."
-						display_result "ROM Scraper"
+					# Check if emulationstation is running
+					if pgrep -f "emulationstation" > /dev/null
+					then
+						result="Emulation Station cannot be running while scraping roms. Please quit Emulation station and run PiAssist from command line."
+						display_result "Rom Scraper"
 					else
-						result_file=$(mktemp)
-						trap "rm $result_file" EXIT
-						readarray devs < <(ls -d /home/pi/RetroPie/roms/*/ | awk '{print NR; print $0}')
-						dialog --menu "Select ROM Folder" 20 80 15 "${devs[@]}" 2> $result_file
-						exit_status=$?
-						romFolderAcutallySelected=true
-						case $exit_status in
-							$DIALOG_CANCEL)
-							  romFolderAcutallySelected=false
-							  ;;
-							$DIALOG_ESC)
-							  romFolderAcutallySelected=false
-							  ;;
-						esac
-						if [ $romFolderAcutallySelected == true ] ; then
-							arrayResult=$(<$result_file)
-							#answer={devs[$((arrayResult+1))]}
-							answer=${devs[$arrayResult+($arrayResult -1)]}
-							
-							romFolder=($answer)
-							
-							gameListXMLLocation="/home/pi/.emulationstation/gamelists/$(basename $romFolder)/gamelist.xml"
-							scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
-							
-							chown pi:pi "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)"
-							
-							#the scraper doesn't include the opening XML tag that is required
-							if grep -q "<?xml" "$gameListXMLLocation" ; then
-								#no action needs to occur
-								echo "" > /dev/null
+						#if scraper doesn't exist then download it
+						if [ ! -f /usr/local/bin/scraper ] ; then
+							echo "Downloading and Installing Scraper created by SSELPH..."
+							#if raspberrypi1 then download the build for raspberrypi1
+							if [ cat /proc/cpuinfo | grep ARMv7 ] ; then
+								wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi2.zip -q
+								unzip scraper_rpi2.zip scraper -d /usr/local/bin/
+								rm scraper_rpi2.zip
 							else
-								echo '<?xml version="1.0"?>' | cat - "$gameListXMLLocation" > temp && mv temp "$gameListXMLLocation"
+								wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi.zip -q
+								unzip scraper_rpi.zip scraper -d /usr/local/bin/
+								rm scraper_rpi.zip
 							fi
-							
-							chown pi:pi "$gameListXMLLocation"
-							
-							find "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -exec chown pi:pi {} +
-							
-							result="ROMS have been scraped. You will need to restart emulation station for the changes to be seen."
-							display_result "ROM Scraper Created by SSELPH"
+						fi
+						
+						#show scraper menu - ask user which console they would like to scrape					
+						romFolderList=$(ls -d /home/pi/RetroPie/roms/*/)
+						if [ "$romFolderList" == "" ] ; then
+							result="No rom folders were found. Not quite sure how that's possible..."
+							display_result "ROM Scraper"
+						else
+							result_file=$(mktemp)
+							trap "rm $result_file" EXIT
+							readarray devs < <(ls -d /home/pi/RetroPie/roms/*/ | awk '{print NR; print $0}')
+							dialog --menu "Select ROM Folder" 20 80 15 "${devs[@]}" 2> $result_file
+							exit_status=$?
+							romFolderAcutallySelected=true
+							case $exit_status in
+								$DIALOG_CANCEL)
+								  romFolderAcutallySelected=false
+								  ;;
+								$DIALOG_ESC)
+								  romFolderAcutallySelected=false
+								  ;;
+							esac
+							if [ $romFolderAcutallySelected == true ] ; then
+								arrayResult=$(<$result_file)
+								#answer={devs[$((arrayResult+1))]}
+								answer=${devs[$arrayResult+($arrayResult -1)]}
+								
+								romFolder=($answer)
+								
+								gameListXMLLocation="/home/pi/.emulationstation/gamelists/$(basename $romFolder)/gamelist.xml"
+								scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
+								
+								chown pi:pi "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)"
+								
+								#the scraper doesn't include the opening XML tag that is required
+								if grep -q "<?xml" "$gameListXMLLocation" ; then
+									#no action needs to occur
+									echo "" > /dev/null
+								else
+									echo '<?xml version="1.0"?>' | cat - "$gameListXMLLocation" > temp && mv temp "$gameListXMLLocation"
+								fi
+								
+								chown pi:pi "$gameListXMLLocation"
+								
+								find "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -exec chown pi:pi {} +
+								
+								result="ROMS have been scraped. You can  now get back into Emulation Station."
+								display_result "ROM Scraper Created by SSELPH"
+							fi
 						fi
 					fi
 					;;
