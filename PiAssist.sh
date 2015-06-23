@@ -566,16 +566,26 @@ showMiscellaneousMenuOptions() {
 						result="Emulation Station cannot be running while scraping roms. Please quit Emulation station and run PiAssist from command line."
 						display_result "Rom Scraper"
 					else
+						scraperVersion=$(wget -qO- https://api.github.com/repos/sselph/scraper/releases/latest | grep tag_name | sed -e 's/.*"tag_name": "\(.*\)".*/\1/')
 						#if scraper doesn't exist then download it
-						if [ ! -f /usr/local/bin/scraper ] ; then
+						updateScraper=false
+						if [ -f /usr/local/bin/scraper ] ; then
+							oldVersion=$(scraper -version 2> /dev/null)
+							if [ $? -ne 0 ] || [ "$scraperVersion" != "$oldVersion" ] ; then
+								if (whiptail --title "Update Scraper?" --yesno "Would you like to update the scraper script?" 0 0) then
+									updateScraper=true
+								fi
+							fi
+						fi
+						if [ ! -f /usr/local/bin/scraper ] || [ $updateScraper == true ] ; then
 							echo "Downloading and Installing Scraper created by SSELPH..."
 							#if raspberrypi1 then download the build for raspberrypi1
-							if [ cat /proc/cpuinfo | grep ARMv7 ] ; then
-								wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi2.zip -q
+							if grep -q ARMv7 /proc/cpuinfo ; then
+								wget https://github.com/sselph/scraper/releases/download/$scraperVersion/scraper_rpi2.zip -q
 								unzip scraper_rpi2.zip scraper -d /usr/local/bin/
 								rm scraper_rpi2.zip
 							else
-								wget https://github.com/sselph/scraper/releases/download/v0.7.5-beta/scraper_rpi.zip -q
+								wget https://github.com/sselph/scraper/releases/download/$scraperVersion/scraper_rpi.zip -q
 								unzip scraper_rpi.zip scraper -d /usr/local/bin/
 								rm scraper_rpi.zip
 							fi
