@@ -153,7 +153,18 @@ showBluetoothMenuOptions() {
 						display_result "Bluetooth"
 					else
 						#install packages then ask to reboot
-						apt-get update > /dev/null && apt-get -y install bluetooth bluez-utils blueman > /dev/null
+						apt-get -qq update > /dev/null && apt-get -qq install bluetooth bluez-utils blueman >/dev/null & # Run in background, with output redirected
+						pid=$! # Get PID of background command
+						
+						i=1
+						sp="/-\|"
+						echo -n 'Installing Bluetooth Packages '
+						while kill -0 $pid  # Signal 0 just tests whether the process exists
+						do
+							printf "\r${sp:i%${#sp}:1} Installing Bluetooth Packages ${sp:i++%${#sp}:1}"
+							sleep 0.5
+						done
+						
 						if (whiptail --title "Reboot?" --yesno "Missing packages were installed. Your Pi needs to be rebooted. Okay to Reboot?" 0 0) then
 							clear
 							shutdown -r now
