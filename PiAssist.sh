@@ -8,7 +8,7 @@ emulationStationConfig='/etc/emulationstation/es_systems.cfg'
 
 display_result() {
   whiptail --title "$1" \
-	--backtitle "Pi Assist" \
+	--backtitle "PiAssist" \
     --clear \
     --msgbox "$result" 0 0
 }
@@ -18,7 +18,7 @@ showNetworkMenuOptions() {
 	while $stayInNetworkMenu; do
 		exec 3>&1
 		networkMenuSeleciton=$(whiptail \
-			--backtitle "Pi Assist" \
+			--backtitle "PiAssist" \
 			--title "System Information" \
 			--clear \
 			--cancel-button "Back" \
@@ -60,7 +60,7 @@ showNetworkMenuOptions() {
 				if [ $currentUser == "root" ] ; then
 					ifconfig wlan0 up
 					wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
-					wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "Pi Assist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+					wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
 					if [ "$wifiSSID" != "" ] ; then
 						actuallyConnectToWifi=false
 						networkInterfacesConfigLocation="/etc/network/interfaces"
@@ -78,7 +78,7 @@ showNetworkMenuOptions() {
 							actuallyConnectToWifi=true
 						fi
 						if [ $actuallyConnectToWifi == true ] ; then
-							wifiPassword=$(whiptail --title "WiFi Network Password" --backtitle "Pi Assist" --passwordbox "Enter the password of the WiFi network you would like to connect to:" 10 70 2>&1 1>&3);
+							wifiPassword=$(whiptail --title "WiFi Network Password" --backtitle "PiAssist" --passwordbox "Enter the password of the WiFi network you would like to connect to:" 10 70 2>&1 1>&3);
 							if [ ! "$wifiPassword" == "" ] ; then
 								echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet dhcp\n\twpa-ssid "'$wifiSSID'"\n\twpa-psk "'$wifiPassword'"' > $networkInterfacesConfigLocation
 								ifdown wlan0 > /dev/null 2>&1
@@ -109,7 +109,7 @@ showBluetoothMenuOptions() {
 	while $stayInBluetoothMenu; do
 		exec 3>&1
 		bluetoothMenuSeleciton=$(whiptail \
-			--backtitle "Pi Assist" \
+			--backtitle "PiAssist" \
 			--title "System Information" \
 			--clear \
 			--cancel-button "Back" \
@@ -274,7 +274,7 @@ showControllerMenuOptions() {
 	while $stayInControllerMenu; do
 		exec 3>&1
 		controllerMenuSeleciton=$(whiptail \
-			--backtitle "Pi Assist" \
+			--backtitle "PiAssist" \
 			--title "Controller" \
 			--clear \
 			--cancel-button "Back" \
@@ -377,7 +377,7 @@ showSystemInfoOptions() {
 	while $stayInSystemInfoMenu; do
 		exec 3>&1
 		systemInfoMenuSeleciton=$(whiptail \
-			--backtitle "Pi Assist" \
+			--backtitle "PiAssist" \
 			--title "System Information" \
 			--clear \
 			--cancel-button "Back" \
@@ -440,8 +440,8 @@ addPiAssistToEmulationStation() {
 	currentUser=$(whoami)
 	if [ $currentUser == "root" ] ; then
 		if grep -q piassist "$emulationStationConfig"; then
-			result="Pi Assist has already been added to Emulation Station"
-			display_result "Add Pi Assist to Emulation Station"
+			result="PiAssist has already been added to Emulation Station"
+			display_result "Add PiAssist to Emulation Station"
 		else
 			piassistConfigLocation="/home/pi/piassist_es.cfg"
 			cat > "$piassistConfigLocation" << EOF
@@ -460,12 +460,12 @@ EOF
 			
 			addAndUpdateEmulationStationEntries
 
-			result=$(echo "Pi Assist has been added to the Emulation Station menu")
-			display_result "Add Pi Assist to Emulation Station"				
+			result=$(echo "PiAssist has been added to the Emulation Station menu")
+			display_result "Add PiAssist to Emulation Station"				
 		fi
 	else
-		result=$(echo "You have to be running the script as root in order to add Pi Assist to emulation station. Please try using sudo.")
-		display_result "Add Pi Assist to Emulation Station"
+		result=$(echo "You have to be running the script as root in order to add PiAssist to emulation station. Please try using sudo.")
+		display_result "Add PiAssist to Emulation Station"
 	fi
 }
 
@@ -476,7 +476,7 @@ showPowerMenuOptions() {
 		while $stayInPowerOptionsMenu; do
 			exec 3>&1
 			systemInfoMenuSeleciton=$(whiptail \
-				--backtitle "Pi Assist" \
+				--backtitle "PiAssist" \
 				--title "Power Menu" \
 				--clear \
 				--cancel-button "Back" \
@@ -512,12 +512,12 @@ showPowerMenuOptions() {
 }
 
 updatePiAssist() {
-	echo "Updating Pi Assist..."
+	echo "Updating PiAssist..."
 	
 	homeDirectory="/home/pi"
 	if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O "$homeDirectory/PiAssist.sh.new" ; then
 		result="An error occurred downloading the update."
-		display_result "Update Pi Assist"
+		display_result "Update PiAssist"
 	else
 		chmod +x "$homeDirectory/PiAssist.sh.new"
 		cat > "$homeDirectory/updateScript.sh" << EOF
@@ -544,7 +544,7 @@ showMiscellaneousMenuOptions() {
 		while $stayInMiscellaneousOptionsMenu; do
 			exec 3>&1
 			miscellaneousMenuSeleciton=$(whiptail \
-				--backtitle "Pi Assist" \
+				--backtitle "PiAssist" \
 				--title "Miscellaneous" \
 				--clear \
 				--cancel-button "Back" \
@@ -653,12 +653,12 @@ showMiscellaneousMenuOptions() {
 					fi
 					;;
 					3 )
-						fileNameToSearchFor=$(whiptail --title "Search for File by File Name" --backtitle "Pi Assist" --inputbox "Enter the file name you would like to search for:" 0 0 2>&1 1>&3);
-						#searchOptions=$(dialog --backtitle "Pi Assist" --checklist "Search Options:" "Match Whole Words Only" off 2 "Match Case" off 3 Slackware off 0 0 2>&1 1>&3);
+						fileNameToSearchFor=$(whiptail --title "Search for File by File Name" --backtitle "PiAssist" --inputbox "Enter the file name you would like to search for:" 0 0 2>&1 1>&3);
+						#searchOptions=$(dialog --backtitle "PiAssist" --checklist "Search Options:" "Match Whole Words Only" off 2 "Match Case" off 3 Slackware off 0 0 2>&1 1>&3);
 						
 						#searchOptions=$(dialog --checklist "Choose toppings:" 10 40 3 1 Cheese on 2 "Tomato Sauce" on 3 Anchovies off);
-						#dialog --backtitle "Pi Assist" --checklist "Select CPU type:" 10 40 4 1 "Match Case" off 2 "Match Whole Words Only" off
-						searchOptions=$(whiptail --backtitle "Pi Assist" --title "Search Options" --checklist \
+						#dialog --backtitle "PiAssist" --checklist "Select CPU type:" 10 40 4 1 "Match Case" off 2 "Match Whole Words Only" off
+						searchOptions=$(whiptail --backtitle "PiAssist" --title "Search Options" --checklist \
 						"Choose search options:" 0 0 2 \
 						"1" "Match Case" OFF \
 						"2" "Match Whole Words Only" OFF \
@@ -677,8 +677,9 @@ showMiscellaneousMenuOptions() {
 						else
 							findCommand="$findCommand '*$fileNameToSearchFor*'"
 						fi
-
-						eval "$findCommand" | less
+						
+						result=$(eval "$findCommand")
+						display_result "Search Results"
 					;;
 			esac
 		done
@@ -709,7 +710,7 @@ esac
 while true; do
   exec 3>&1
   maineMenuSelection=$(whiptail \
-	--backtitle "Pi Assist" \
+	--backtitle "PiAssist" \
 	--clear \
     --title "Main Menu" \
 	--cancel-button "Exit" \
