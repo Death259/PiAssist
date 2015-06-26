@@ -525,10 +525,10 @@ updatePiAssist() {
 if mv "PiAssist.sh.new" "PiAssist.sh"; then
   rm -- \$0
   chown -R pi:pi PiAssist.sh
-  dialog --title "Update Completed" --no-collapse --msgbox "Update Completed. You need to restart the script." 0 0
+  whiptail --title "Update Completed" --msgbox "Update Completed. You need to restart the script." 0 0
   clear
 else
-  dialog --title "Update Failed!" --no-collapse --msgbox "There was an issue updating the script" 0 0
+  whiptail --title "Update Failed!" --msgbox "There was an issue updating the script" 0 0
   clear
 fi
 EOF
