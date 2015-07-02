@@ -430,10 +430,12 @@ addAndUpdateEmulationStationEntries() {
 	wget https://raw.githubusercontent.com/Death259/PiAssist/master/Emulation%20Station%20Theme/piassist/art/piassist_pixelated.png -q -O "$piassitThemeLocation"/art/piassist_pixelated.png
 
 	mkdir /home/pi/PiAssist/ > /dev/null 2>&1
-	touch /home/pi/PiAssist/Launch\ PiAssist.sh
-	touch /home/pi/PiAssist/Update\ PiAssist.sh
+	find /home/pi/PiAssist/ -name "*.sh" -delete
+	touch "/home/pi/PiAssist/Launch PiAssist.sh"
+	touch "/home/pi/PiAssist/Update PiAssist.sh"
+	touch "/home/pi/PiAssist/Backup Save Files to Dropbox.sh"
 
-	chown -R pi:pi /home/pi/PiAssist
+	chown -R pi:pi /home/pi/PiAssist/
 }
 
 addPiAssistToEmulationStation() {
@@ -513,7 +515,6 @@ showPowerMenuOptions() {
 
 updatePiAssist() {
 	echo "Updating PiAssist..."
-	
 	homeDirectory="/home/pi"
 	if ! wget -q https://raw.githubusercontent.com/Death259/PiAssist/master/PiAssist.sh -O "$homeDirectory/PiAssist.sh.new" ; then
 		result="An error occurred downloading the update."
@@ -525,6 +526,7 @@ updatePiAssist() {
 if mv "PiAssist.sh.new" "PiAssist.sh"; then
   rm -- \$0
   chown -R pi:pi PiAssist.sh
+  ./PiAssist.sh "Update Emulation Station Entries"
   whiptail --title "Update Completed" --msgbox "Update Completed. You need to restart the script." 0 0
   clear
 else
@@ -535,6 +537,23 @@ EOF
 		exec /bin/bash "$homeDirectory/updateScript.sh"
 		exit
 	fi
+}
+
+backupEmulatorSaveFilesToDropBox() {
+	wget https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh -q -O /home/pi/PiAssist/dropbox_uploader.bsh
+	chmod +x /home/pi/PiAssist/dropbox_uploader.bsh
+
+	if [[ -e /home/pi/.dropbox_uploader ]]; then
+		/home/pi/PiAssist/dropbox_uploader.bsh
+	fi
+
+	find /home/pi/RetroPie/roms/ -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' | while read line; do
+		remotePath="$(basename "$(dirname "$line")")"/"${line##*/}"
+		/home/pi/PiAssist/dropbox_uploader.bsh upload "$line" "$remotePath"
+	done
+
+	result="All known saved files have been backed up."
+	display_result "Saved Files Backed Up"
 }
 
 showMiscellaneousMenuOptions() {
@@ -683,20 +702,7 @@ showMiscellaneousMenuOptions() {
 						display_result "Search Results"
 					;;
 					4 )
-						wget https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh -q -O /home/pi/PiAssist/dropbox_uploader.bsh
-						chmod +x /home/pi/PiAssist/dropbox_uploader.bsh
-						
-						if [[ -e /home/pi/.dropbox_uploader ]]; then
-							/home/pi/PiAssist/dropbox_uploader.bsh
-						fi
-						
-						find /home/pi/RetroPie/roms/ -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' | while read line; do
-							remotePath="$(basename "$(dirname "$line")")"/"${line##*/}"
-							/home/pi/PiAssist/dropbox_uploader.bsh upload "$line" "$remotePath"
-						done
-						
-						result="All known saved files have been backed up."
-						display_result "Saved Files Backed Up"
+						backupEmulatorSaveFilesToDropBox
 					;;
 			esac
 		done
@@ -716,6 +722,14 @@ commandToRun="${commandToRun%.*}"
 case "$commandToRun" in
 	"Update PiAssist" )
 		updatePiAssist
+	;;
+	"Backup Save Files to Dropbox" )
+		backupEmulatorSaveFilesToDropBox;
+		exit
+	;;
+	"Update Emulation Station Entries" )
+		addAndUpdateEmulationStationEntries;
+		exit
 	;;
 esac
 
