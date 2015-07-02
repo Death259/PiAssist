@@ -51,7 +51,7 @@ showNetworkMenuOptions() {
 					result=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
 					display_result "WiFi Networks"
 				else
-					result=$(echo "You have to be running the script as root in order to connect to a WiFi network. Please try using sudo.")
+					result=$(echo "You have to be running the script as root in order to scan for WiFi networks. Please try using sudo.")
 					display_result "WiFi Network"
 				fi
 				;;
@@ -552,6 +552,7 @@ showMiscellaneousMenuOptions() {
 				"1" "Change Keyboard Language/Configuration" \
 				"2" "ROM Scraper Created by SSELPH" \
 				"3" "Search for File by File Name" \
+				"4" "Backup Emulator Save files to DropBox (Thanks to andreafabrizi)" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
@@ -680,6 +681,22 @@ showMiscellaneousMenuOptions() {
 						
 						result=$(eval "$findCommand")
 						display_result "Search Results"
+					;;
+					4 )
+						wget https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh -q -O /home/pi/PiAssist/dropbox_uploader.bsh
+						chmod +x /home/pi/PiAssist/dropbox_uploader.bsh
+						
+						if [[ -e /home/pi/.dropbox_uploader ]]; then
+							/home/pi/PiAssist/dropbox_uploader.bsh
+						fi
+						
+						find /home/pi/RetroPie/roms/ -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' | while read line; do
+							remotePath="$(basename "$(dirname "$line")")"/"${line##*/}"
+							/home/pi/PiAssist/dropbox_uploader.bsh upload "$line" "$remotePath"
+						done
+						
+						result="All known saved files have been backed up."
+						display_result "Saved Files Backed Up"
 					;;
 			esac
 		done
