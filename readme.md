@@ -28,6 +28,7 @@ Here's the menu options currently available to let you know what the system is c
     1. Change Keyboard Language/Configuration
     2. ROM Scraper Created by SSELPH
     3. Search for File by File Name
+    4. Backup Emulator Save files to DropBox (Thanks to andreafabrizi)
 
 Please see the [Wiki](https://github.com/Death259/PiAssist/wiki/) for more detail explanations and instructions.
 
