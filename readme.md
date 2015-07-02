@@ -37,5 +37,5 @@ Please see the [Wiki](https://github.com/Death259/PiAssist/wiki/) for more detai
 ***Libraries Used***
 
 1. [scraper](https://github.com/sselph/scraper) which was created by [SSELPH](https://github.com/sselph/)
-2. [dropbox-uploader](https://github.com/andreafabrizi/Dropbox-Uploader) which was created by [andreafabrizi](https://github.com/andreafabrizi)
+2. [Dropbox-Uploader](https://github.com/andreafabrizi/Dropbox-Uploader) which was created by [andreafabrizi](https://github.com/andreafabrizi)
 
