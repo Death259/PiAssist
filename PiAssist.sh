@@ -434,6 +434,7 @@ addAndUpdateEmulationStationEntries() {
 	touch "/home/pi/PiAssist/Launch PiAssist.sh"
 	touch "/home/pi/PiAssist/Update PiAssist.sh"
 	touch "/home/pi/PiAssist/Backup Save Files to Dropbox.sh"
+	touch "/home/pi/PiAssist/Restore Save Files from Backup.sh"
 
 	chown -R pi:pi /home/pi/PiAssist/
 }
@@ -759,6 +760,10 @@ case "$commandToRun" in
 	;;
 	"Update Emulation Station Entries" )
 		addAndUpdateEmulationStationEntries;
+		exit
+	;;
+	"Restore Save Files from Backup" )
+		restoreFromBackupOfEmulatorSaveFilesFromDropBox;
 		exit
 	;;
 esac
