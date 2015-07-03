@@ -153,7 +153,7 @@ showBluetoothMenuOptions() {
 						display_result "Bluetooth"
 					else
 						#install packages then ask to reboot
-						apt-get -qq update > /dev/null && apt-get -qq install bluetooth bluez-utils blueman >/dev/null & # Run in background, with output redirected
+						apt-get -qq update > /dev/null && apt-get -qq install bluetooth blueman bluez-utils >/dev/null & # Run in background, with output redirected
 						pid=$! # Get PID of background command
 						
 						i=1
@@ -186,7 +186,7 @@ showBluetoothMenuOptions() {
 					result_file=$(mktemp)
 					trap "rm $result_file" EXIT
 					readarray devs < <(hcitool scan | tail -n +2 | awk '{print NR; print $0}')
-					dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
+					dialog --clear --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
 					exit_status=$?
 					deviceAcutallySelected=true
 					case $exit_status in
@@ -204,12 +204,33 @@ showBluetoothMenuOptions() {
 						
 						bluetoothMacAddress=($answer)
 						
-						bluez-simple-agent hci0 "$bluetoothMacAddress"
-						bluez-test-device trusted "$bluetoothMacAddress" yes
-						bluez-test-input connect "$bluetoothMacAddress"
+						exec 5>&1
+						step1=$(bluez-simple-agent hci0 "$bluetoothMacAddress" >&5)
+						step2=$(bluez-test-device trusted "$bluetoothMacAddress" yes >&5)
+						step3=$(bluez-test-input connect "$bluetoothMacAddress" >&5)
 						
-						result="Bluetooth device has been connected"
-						display_result "Connect Bluetooth Device"
+						step1Successful=true
+						if [ "$step1" != "" ] && [ "$step1" != "Creating device filed: org.bluez.Error.AlreadyExists: Already Exists" ]; then
+							$step1Successful=false;
+						fi
+						
+						step2Successful=true
+						if [ "$step2" != "" ]; then
+							$step2Successful=false;
+						fi
+						
+						step3Successful=true
+						if [ "$step3" != "" ]; then
+							$step3Successful=false;
+						fi
+						
+						if [ $step1Successful ] && [ $step2Successful ] && [ $step3Successful ] ; then
+							result="Bluetooth device has been connected"
+							display_result "Connect Bluetooth Device"
+						else
+							result="An error occurred connecting to the bluetooth device."
+							display_result "Connect Bluetooth Device"
+						fi
 					fi
 				fi
 				;;
@@ -222,7 +243,7 @@ showBluetoothMenuOptions() {
 					result_file=$(mktemp)
 					trap "rm $result_file" EXIT
 					readarray devs < <(bluez-test-device list | awk '{print NR; print $0}')
-					dialog --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
+					dialog --clear --menu "Select device" 20 80 15 "${devs[@]}" 2> $result_file
 					exit_status=$?
 					deviceAcutallySelected=true
 					case $exit_status in
@@ -726,7 +747,7 @@ showMiscellaneousMenuOptions() {
 							findCommand="$findCommand '*$fileNameToSearchFor*'"
 						fi
 						
-						result=$(eval "$findCommand")
+						result=$(eval "$findCommand")						
 						display_result "Search Results"
 					;;
 					4 )
