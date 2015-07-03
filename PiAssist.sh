@@ -539,6 +539,7 @@ EOF
 	fi
 }
 
+gameSavesFileName="GameSaves.tar.gz"
 backupEmulatorSaveFilesToDropBox() {
 	wget https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh -q -O /home/pi/PiAssist/dropbox_uploader.bsh
 	chmod +x /home/pi/PiAssist/dropbox_uploader.bsh
@@ -552,13 +553,33 @@ backupEmulatorSaveFilesToDropBox() {
 	#	/home/pi/PiAssist/dropbox_uploader.bsh upload "$line" "$remotePath"
 	#done
 	
-	gameSavesFileName="GameSaves.tar.gz"
 	find /home/pi/RetroPie/roms/ \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
 	/home/pi/PiAssist/dropbox_uploader.bsh upload "$gameSavesFileName" "$gameSavesFileName"
 	rm "$gameSavesFileName"
 
 	result="All known saved files have been backed up."
 	display_result "Saved Files Backed Up"
+}
+
+restoreFromBackupOfEmulatorSaveFilesFromDropBox() {
+	wget https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh -q -O /home/pi/PiAssist/dropbox_uploader.bsh
+	chmod +x /home/pi/PiAssist/dropbox_uploader.bsh
+
+	if [[ -e /home/pi/.dropbox_uploader ]]; then
+		/home/pi/PiAssist/dropbox_uploader.bsh
+	fi
+	
+	/home/pi/PiAssist/dropbox_uploader.bsh download /"$gameSavesFileName"
+	if [[ -e "$gameSavesFileName" ]]; then
+		tar -zxvf "$gameSavesFileName" --strip-components=2 -C /home/pi/
+		rm "$gameSavesFileName"
+		
+		result="All save files have been restored from backup."
+		display_result "Restoring Save Files"
+	else
+		result="Unable to locate the save file backup. Please ensure that the backup name matches $gameSavesFileName."
+		display_result "Restoring Save Files"
+	fi
 }
 
 showMiscellaneousMenuOptions() {
@@ -577,6 +598,7 @@ showMiscellaneousMenuOptions() {
 				"2" "ROM Scraper Created by SSELPH" \
 				"3" "Search for File by File Name" \
 				"4" "Backup Emulator Save files to DropBox (Thanks to andreafabrizi)" \
+				"5" "Restore Save files from Backup on DropBox (Thanks to andreafabrizi)" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
@@ -708,6 +730,9 @@ showMiscellaneousMenuOptions() {
 					;;
 					4 )
 						backupEmulatorSaveFilesToDropBox
+					;;
+					5 )
+						restoreFromBackupOfEmulatorSaveFilesFromDropBox
 					;;
 			esac
 		done
