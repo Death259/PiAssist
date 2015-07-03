@@ -575,7 +575,7 @@ backupEmulatorSaveFilesToDropBox() {
 	#	/home/pi/PiAssist/dropbox_uploader.bsh upload "$line" "$remotePath"
 	#done
 	
-	find /home/pi/RetroPie/roms/ \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
+	find /home/pi/RetroPie/roms/ \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
 	/home/pi/PiAssist/dropbox_uploader.bsh upload "$gameSavesFileName" "$gameSavesFileName"
 	rm "$gameSavesFileName"
 
