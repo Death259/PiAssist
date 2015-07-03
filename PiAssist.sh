@@ -598,8 +598,8 @@ showMiscellaneousMenuOptions() {
 				"1" "Change Keyboard Language/Configuration" \
 				"2" "ROM Scraper Created by SSELPH" \
 				"3" "Search for File by File Name" \
-				"4" "Backup Emulator Save files to DropBox (Thanks to andreafabrizi)" \
-				"5" "Restore Save files from Backup on DropBox (Thanks to andreafabrizi)" \
+				"4" "Backup Emulator Save files to DropBox (Thanks andreafabrizi)" \
+				"5" "Restore Save files from Backup on DropBox (Thanks andreafabrizi)" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
