@@ -493,6 +493,10 @@ EOF
 	fi
 }
 
+#########
+#Show power menu options
+#########
+
 showPowerMenuOptions() {
 	currentUser=$(whoami)
 	if [ "$currentUser" == "root" ] ; then
@@ -535,6 +539,13 @@ showPowerMenuOptions() {
 	fi
 }
 
+#########
+#Update PiAssist from GitHub
+##Download the latest version of the script
+##Create update script and run it
+##Have the update script also update the Emulation Station menu entries
+#########
+
 updatePiAssist() {
 	echo "Updating PiAssist..."
 	homeDirectory="/home/pi"
@@ -561,6 +572,12 @@ EOF
 	fi
 }
 
+#########
+#Backup game saves and save states to dropbox
+##Take all save files and save states and tar them and gzip them up
+##Upload zip file to dropbox
+#########
+
 gameSavesFileName="GameSaves.tar.gz"
 backupEmulatorSaveFilesToDropBox() {
 	wget https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh -q -O /home/pi/PiAssist/dropbox_uploader.bsh
@@ -583,6 +600,10 @@ backupEmulatorSaveFilesToDropBox() {
 	display_result "Saved Files Backed Up"
 }
 
+#########
+#Restore save files and save states from a dropbox backup
+#########
+
 restoreFromBackupOfEmulatorSaveFilesFromDropBox() {
 	wget https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh -q -O /home/pi/PiAssist/dropbox_uploader.bsh
 	chmod +x /home/pi/PiAssist/dropbox_uploader.bsh
@@ -603,6 +624,10 @@ restoreFromBackupOfEmulatorSaveFilesFromDropBox() {
 		display_result "Restoring Save Files"
 	fi
 }
+
+#########
+#Show miscellaneous menu options
+#########
 
 showMiscellaneousMenuOptions() {
 	currentUser=$(whoami)
