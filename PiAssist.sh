@@ -724,7 +724,13 @@ showMiscellaneousMenuOptions() {
 								romFolder=($answer)
 								
 								gameListXMLLocation="/home/pi/.emulationstation/gamelists/$(basename $romFolder)/gamelist.xml"
-								scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
+								
+								#if mame, then we need to use the mame 
+								if [[ $romFolder == *"mame"* ]]; then
+									scraper -mame -mame_img "t,m,s" -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
+								else
+									scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
+								fi
 								
 								chown pi:pi "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)"
 								
