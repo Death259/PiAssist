@@ -592,7 +592,10 @@ backupEmulatorSaveFilesToDropBox() {
 	#	/home/pi/PiAssist/dropbox_uploader.bsh upload "$line" "$remotePath"
 	#done
 	
-	find /home/pi/RetroPie/roms/ \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
+	romLocations=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g")
+	
+	find $romLocations \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
+	#find /home/pi/RetroPie/roms/ \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
 	/home/pi/PiAssist/dropbox_uploader.bsh upload "$gameSavesFileName" "$gameSavesFileName"
 	rm "$gameSavesFileName"
 
@@ -614,7 +617,7 @@ restoreFromBackupOfEmulatorSaveFilesFromDropBox() {
 	
 	/home/pi/PiAssist/dropbox_uploader.bsh download /"$gameSavesFileName"
 	if [[ -e "$gameSavesFileName" ]]; then
-		tar -zxvf "$gameSavesFileName" --strip-components=2 -C /home/pi/
+		tar -zxvf "$gameSavesFileName" -C / #--strip-components=2 -C /home/pi/
 		rm "$gameSavesFileName"
 		
 		result="All save files have been restored from backup."
