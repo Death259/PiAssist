@@ -705,10 +705,13 @@ showMiscellaneousMenuOptions() {
 							result="No rom folders were found. Not quite sure how that's possible..."
 							display_result "ROM Scraper"
 						else
-							result_file=$(mktemp)
-							trap "rm $result_file" EXIT
-							readarray devs < <(ls -d /home/pi/RetroPie/roms/*/ | awk '{print NR; print $0}')
-							dialog --menu "Select ROM Folder" 20 80 15 "${devs[@]}" 2> $result_file
+							#result_file=$(mktemp)
+							#trap "rm $result_file" EXIT
+							#readarray devs < <(ls -d /home/pi/RetroPie/roms/*/ | awk '{print NR; print $0}')
+							#dialog --menu "Select ROM Folder" 20 80 15 "${devs[@]}" 2> $result_file
+							esSystemsList=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g" | awk '{print $0; print $0}')
+							romFolder=$(whiptail --notags --backtitle "PiAssist" --menu "Select ROM Folder" 20 80 10 $esSystemsList 3>&1 1>&2 2>&3)
+
 							exit_status=$?
 							romFolderAcutallySelected=true
 							case $exit_status in
@@ -720,23 +723,20 @@ showMiscellaneousMenuOptions() {
 								  ;;
 							esac
 							if [ $romFolderAcutallySelected == true ] ; then
-								arrayResult=$(<$result_file)
-								#answer={devs[$((arrayResult+1))]}
-								answer=${devs[$arrayResult+($arrayResult -1)]}
+								#arrayResult=$(<$result_file)
+								##answer={devs[$((arrayResult+1))]}
+								#answer=${devs[$arrayResult+($arrayResult -1)]}
 								
-								romFolder=($answer)
-								
+								#romFolder=($answer)
 								gameListXMLLocation="/home/pi/.emulationstation/gamelists/$(basename $romFolder)/gamelist.xml"
 								
 								#if mame, then we need to use the mame 
 								if [[ $romFolder == *"mame"* ]]; then
 									scraper -mame -mame_img "t,m,s" -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
 								else
-									scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
+									scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
 								fi
-								
 								chown pi:pi "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)"
-								
 								#the scraper doesn't include the opening XML tag that is required
 								if grep -q "<?xml" "$gameListXMLLocation" ; then
 									#no action needs to occur
@@ -757,10 +757,6 @@ showMiscellaneousMenuOptions() {
 					;;
 					3 )
 						fileNameToSearchFor=$(whiptail --title "Search for File by File Name" --backtitle "PiAssist" --inputbox "Enter the file name you would like to search for:" 0 0 2>&1 1>&3);
-						#searchOptions=$(dialog --backtitle "PiAssist" --checklist "Search Options:" "Match Whole Words Only" off 2 "Match Case" off 3 Slackware off 0 0 2>&1 1>&3);
-						
-						#searchOptions=$(dialog --checklist "Choose toppings:" 10 40 3 1 Cheese on 2 "Tomato Sauce" on 3 Anchovies off);
-						#dialog --backtitle "PiAssist" --checklist "Select CPU type:" 10 40 4 1 "Match Case" off 2 "Match Whole Words Only" off
 						searchOptions=$(whiptail --backtitle "PiAssist" --title "Search Options" --checklist \
 						"Choose search options:" 0 0 2 \
 						"1" "Match Case" OFF \
