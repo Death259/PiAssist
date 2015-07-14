@@ -13,6 +13,10 @@ display_result() {
     --msgbox "$result" 0 0
 }
 
+#########
+#Shows the network menu options
+#########
+
 showNetworkMenuOptions() {
 	stayInNetworkMenu=true
 	while $stayInNetworkMenu; do
@@ -103,6 +107,10 @@ showNetworkMenuOptions() {
 		esac
 	done
 }
+
+#########
+#Shows the bluetooth menu options
+#########
 
 showBluetoothMenuOptions() {
 	stayInBluetoothMenu=true
@@ -290,6 +298,10 @@ showBluetoothMenuOptions() {
 	done
 }
 
+#########
+#Shows the controller options menu
+#########
+
 showControllerMenuOptions() {
 	stayInControllerMenu=true
 	while $stayInControllerMenu; do
@@ -393,6 +405,10 @@ showControllerMenuOptions() {
 	done
 }
 
+#########
+#Shows the menu that will display various system information
+#########
+
 showSystemInfoOptions() {
 	stayInSystemInfoMenu=true
 	while $stayInSystemInfoMenu; do
@@ -441,6 +457,10 @@ showSystemInfoOptions() {
 	done
 }
 
+#########
+#Updates and adds the individual menu entries within the emulation station PiAssist section
+#########
+
 addAndUpdateEmulationStationEntries() {
 	#Download Theme from GitHub and place it in the emulation station themes directory (/etc/emulationstation/themes/simple)
 	piassitThemeLocation="/etc/emulationstation/themes/simple/piassist/"
@@ -459,6 +479,10 @@ addAndUpdateEmulationStationEntries() {
 
 	chown -R pi:pi /home/pi/PiAssist/
 }
+
+#########
+#Adds separate menu and menu options within emulation station
+#########
 
 addPiAssistToEmulationStation() {
 	currentUser=$(whoami)
