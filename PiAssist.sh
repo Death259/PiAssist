@@ -52,7 +52,8 @@ showNetworkMenuOptions() {
 				currentUser=$(whoami)
 				if [ $currentUser == "root" ] ; then
 					ifconfig wlan0 up
-					result=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
+					#result=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
+					result=$(iwlist wlan0 scan | grep ESSID | awk -F \" '{print $2}')
 					display_result "WiFi Networks"
 				else
 					result=$(echo "You have to be running the script as root in order to scan for WiFi networks. Please try using sudo.")
@@ -63,8 +64,15 @@ showNetworkMenuOptions() {
 				currentUser=$(whoami)
 				if [ $currentUser == "root" ] ; then
 					ifconfig wlan0 up
-					wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
-					wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+					#wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//'')
+					wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | awk -F \" '{print $2 ; print $2}')
+					wifiNetworkList+=' Other Other'
+					#wifiNetworkList=(${wifiNetworkList[@]} Other)
+					#wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+					wifiSSID=$(whiptail --notags --backtitle "PiAssist" --menu "Select WiFi Network" 20 80 10 $wifiNetworkList 3>&1 1>&2 2>&3)
+					if [ "$wifiSSID" != "Other " ] ; then
+							wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Enter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+					fi
 					if [ "$wifiSSID" != "" ] ; then
 						actuallyConnectToWifi=false
 						networkInterfacesConfigLocation="/etc/network/interfaces"
