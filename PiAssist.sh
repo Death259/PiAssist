@@ -70,10 +70,23 @@ showNetworkMenuOptions() {
 					#wifiNetworkList=(${wifiNetworkList[@]} Other)
 					#wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
 					wifiSSID=$(whiptail --notags --backtitle "PiAssist" --menu "Select WiFi Network" 20 80 10 $wifiNetworkList 3>&1 1>&2 2>&3)
-					if [ "$wifiSSID" != "Other " ] ; then
-							wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Enter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+					exit_status=$?
+					wifiNetworkActuallySelected=true
+					case $exit_status in
+						$DIALOG_CANCEL)
+						  wifiNetworkActuallySelected=false
+						  ;;
+						$DIALOG_ESC)
+						  wifiNetworkActuallySelected=false
+						  ;;
+					esac
+					
+					if [ "$wifiSSID" == "Other" ] ; then
+						wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Enter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
 					fi
-					if [ "$wifiSSID" != "" ] ; then
+					
+					if [ $wifiNetworkActuallySelected == true ] && [ "$wifiSSID" != "" ] ; then
+					#if [ "$wifiSSID" != "" ] ; then
 						actuallyConnectToWifi=false
 						networkInterfacesConfigLocation="/etc/network/interfaces"
 						
