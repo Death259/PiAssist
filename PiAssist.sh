@@ -573,9 +573,11 @@ showPowerMenuOptions() {
 				  ;;
 				1 )
 					shutdown -h now
+					exit
 					;;
 				2 )
 					shutdown -r now
+					exit
 					;;
 			esac
 		done
