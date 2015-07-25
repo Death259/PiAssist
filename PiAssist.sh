@@ -5,6 +5,7 @@ DIALOG_ESC=255
 HEIGHT=0
 WIDTH=0
 emulationStationConfig='/etc/emulationstation/es_systems.cfg'
+splashscreenDirectory='/home/pi/RetroPie-Setup/supplementary/splashscreens/'
 
 display_result() {
   whiptail --title "$1" \
@@ -548,7 +549,7 @@ showPowerMenuOptions() {
 		stayInPowerOptionsMenu=true
 		while $stayInPowerOptionsMenu; do
 			exec 3>&1
-			systemInfoMenuSeleciton=$(whiptail \
+			powerOptionsMenuSeleciton=$(whiptail \
 				--backtitle "PiAssist" \
 				--title "Power Menu" \
 				--clear \
@@ -566,7 +567,7 @@ showPowerMenuOptions() {
 				  stayInPowerOptionsMenu=false
 				  ;;
 			esac
-			case $systemInfoMenuSeleciton in
+			case $powerOptionsMenuSeleciton in
 				0 )
 				  stayInPowerOptionsMenu=false
 				  ;;
@@ -674,6 +675,65 @@ restoreFromBackupOfEmulatorSaveFilesFromDropBox() {
 }
 
 #########
+#Shows the menu that allows users to change the splashscreen
+#########
+
+showChangeSplashScreenMenu() {
+	currentUser=$(whoami)
+	if [ "$currentUser" == "root" ] ; then
+		stayInPowerOptionsMenu=true
+		while $stayInPowerOptionsMenu; do
+			exec 3>&1
+			systemInfoMenuSeleciton=$(whiptail \
+				--backtitle "PiAssist" \
+				--title "Power Menu" \
+				--clear \
+				--cancel-button "Back" \
+				--menu "Please select:" $HEIGHT $WIDTH 2 \
+				"1" "Set Individual SplashScreen" \
+				2>&1 1>&3)
+			exit_status=$?
+			case $exit_status in
+				$DIALOG_CANCEL)
+				  stayInPowerOptionsMenu=false
+				  ;;
+				$DIALOG_ESC)
+				  stayInPowerOptionsMenu=false
+				  ;;
+			esac
+			case $systemInfoMenuSeleciton in
+				0 )
+				  stayInPowerOptionsMenu=false
+				  ;;
+				1 )
+					splashscreenList=$(find $splashscreenDirectory \( -iname '*.png' -o -iname '*.jpg' \) | awk '{print $0; print $0;}')
+					splashScreenChosen=$(whiptail --notags --backtitle "PiAssist" --menu "Select SplashScreen Folder" 20 0 10 $splashscreenList 3>&1 1>&2 2>&3)
+					exit_status=$?
+					splashScreenAcutallySelected=true
+					case $exit_status in
+						$DIALOG_CANCEL)
+						  splashScreenAcutallySelected=false
+						  ;;
+						$DIALOG_ESC)
+						  splashScreenAcutallySelected=false
+						  ;;
+					esac
+					if [ $splashScreenAcutallySelected == true ] ; then					
+						echo "$splashScreenChosen" > "/etc/splashscreen.list"
+						
+						result="The splashscreen has been changed to $splashScreenChosen."
+						display_result "SplashScreen Changed"
+					fi
+					;;
+			esac
+		done
+	else
+		result=$(echo "You have to be running the script as root in order to access the power menu. Please try using sudo.")
+		display_result "Configure Controller"
+	fi
+}
+
+#########
 #Show miscellaneous menu options
 #########
 
@@ -694,6 +754,7 @@ showMiscellaneousMenuOptions() {
 				"3" "Search for File by File Name" \
 				"4" "Backup Emulator Save files to DropBox (Thanks andreafabrizi)" \
 				"5" "Restore Save files from Backup on DropBox (Thanks andreafabrizi)" \
+				"6" "Change SplashScreen" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
@@ -830,6 +891,9 @@ showMiscellaneousMenuOptions() {
 					;;
 					5 )
 						restoreFromBackupOfEmulatorSaveFilesFromDropBox
+					;;
+					6 )
+						showChangeSplashScreenMenu
 					;;
 			esac
 		done
