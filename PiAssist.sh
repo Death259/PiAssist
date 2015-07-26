@@ -694,6 +694,7 @@ showChangeSplashScreenMenu() {
 				--cancel-button "Back" \
 				--menu "Please select:" $HEIGHT $WIDTH 2 \
 				"1" "Set Individual Splash Screen" \
+				"2" "Use Splash Screen Randomizer (Thanks sur0x)" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
@@ -708,8 +709,12 @@ showChangeSplashScreenMenu() {
 				0 )
 				  stayInPowerOptionsMenu=false
 				  ;;
-				1 )
-					splashscreenList=$(find $splashscreenDirectory \( -iname '*.png' -o -iname '*.jpg' \) | awk '{print $0; print $0;}')
+				1 )				
+					if [ -e /etc/init.d/splashscreen.sh ]; then
+						rm /etc/init.d/splashscreen.sh
+						update-rc.d splashscreen.sh remove
+					fi
+					splashscreenList=$(find $splashscreenDirectory \( -iname '*.png' -o -iname '*.jpg' \) | awk '{print $0; print $0;}')					
 					splashScreenChosen=$(whiptail --notags --backtitle "PiAssist" --menu "Select Splash Screen" 20 0 10 $splashscreenList 3>&1 1>&2 2>&3)
 					exit_status=$?
 					splashScreenAcutallySelected=true
@@ -726,6 +731,29 @@ showChangeSplashScreenMenu() {
 						
 						result="The splashscreen has been changed to $splashScreenChosen."
 						display_result "SplashScreen Changed"
+					fi
+					;;
+				2 )
+				cat > /etc/init.d/splashscreen.sh << \EOF
+### BEGIN INIT INFO 	
+# Provides:          splashscreen 
+# Required-Start:     
+# Required-Stop:      
+# Default-Start:     2 3 4 5 
+# Default-Stop:      0 1 6 
+# Short-Description: splashscreen randomizer  
+### END INIT INFO 
+#/bin/bash 
+find /home/pi/RetroPie-Setup/supplementary/splashscreens/ \( -iname '*.png' -o -iname '*.jpg' \)  > /home/pi/PiAssist/splashscreens.list
+shuf -n 1 /home/pi/PiAssist/splashscreens.list > /etc/splashscreen.list
+rm /home/pi/PiAssist/splashscreens.list
+EOF
+					chmod +x /etc/init.d/splashscreen.sh
+					update-rc.d splashscreen.sh defaults 
+					if (whiptail --title "Reboot?" --yesno "Splash Screen Randomizer has been Installed. Your Pi needs to be rebooted. Okay to Reboot?" 0 0) then
+						clear
+						shutdown -r now
+						exit
 					fi
 					;;
 			esac
