@@ -808,16 +808,20 @@ showMiscellaneousMenuOptions() {
 						fi
 						
 						#show scraper menu - ask user which console they would like to scrape					
-						romFolderList=$(ls -d /home/pi/RetroPie/roms/*/)
+						#romFolderList=$(ls -d /home/pi/RetroPie/roms/*/)
+						romFolderList=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g" | awk '{print $0; print $0}')
 						if [ "$romFolderList" == "" ] ; then
 							result="No rom folders were found. Not quite sure how that's possible..."
 							display_result "ROM Scraper"
 						else
+							
 							#result_file=$(mktemp)
 							#trap "rm $result_file" EXIT
 							#readarray devs < <(ls -d /home/pi/RetroPie/roms/*/ | awk '{print NR; print $0}')
 							#dialog --menu "Select ROM Folder" 20 80 15 "${devs[@]}" 2> $result_file
-							esSystemsList=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g" | awk '{print $0; print $0}')
+							#esSystemsList=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g" | awk '{print $0; print $0}')
+							#esSystemsList="All All"
+							esSystemsList+=$romFolderList
 							romFolder=$(whiptail --notags --backtitle "PiAssist" --menu "Select ROM Folder" 20 80 10 $esSystemsList 3>&1 1>&2 2>&3)
 
 							exit_status=$?
