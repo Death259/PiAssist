@@ -28,7 +28,11 @@ Here's the menu options currently available to let you know what the system is c
     1. Change Keyboard Language/Configuration
     2. ROM Scraper Created by SSELPH
     3. Search for File by File Name
-    4. Backup Emulator Save files to DropBox (Thanks to andreafabrizi)
+    4. Backup Emulator Save files to DropBox (Thanks andreafabrizi)
+    5. Restore Save files from Backup on DropBox (Thanks andreafabrizi)
+    6. Change Splash Screen
+        1.  Set Individual Splash Screen
+        2.  Use Splash Screen Randomizer (Thanks sur0x)
 
 Please see the [Wiki](https://github.com/Death259/PiAssist/wiki/) for more detail explanations and instructions.
 
