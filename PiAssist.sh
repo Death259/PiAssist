@@ -498,6 +498,7 @@ addAndUpdateEmulationStationEntries() {
 	touch "/home/pi/PiAssist/Update PiAssist.sh"
 	touch "/home/pi/PiAssist/Backup Save Files to Dropbox.sh"
 	touch "/home/pi/PiAssist/Restore Save Files from Backup.sh"
+	touch "/home/pi/PiAssist/Change Splash Screen.sh"
 
 	chown -R pi:pi /home/pi/PiAssist/
 }
@@ -677,7 +678,7 @@ restoreFromBackupOfEmulatorSaveFilesFromDropBox() {
 }
 
 #########
-#Shows the menu that allows users to change the splashscreen
+#Shows the menu that allows users to change the splash screen
 #########
 
 showChangeSplashScreenMenu() {
@@ -692,7 +693,7 @@ showChangeSplashScreenMenu() {
 				--clear \
 				--cancel-button "Back" \
 				--menu "Please select:" $HEIGHT $WIDTH 2 \
-				"1" "Set Individual SplashScreen" \
+				"1" "Set Individual Splash Screen" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
@@ -709,7 +710,7 @@ showChangeSplashScreenMenu() {
 				  ;;
 				1 )
 					splashscreenList=$(find $splashscreenDirectory \( -iname '*.png' -o -iname '*.jpg' \) | awk '{print $0; print $0;}')
-					splashScreenChosen=$(whiptail --notags --backtitle "PiAssist" --menu "Select SplashScreen Folder" 20 0 10 $splashscreenList 3>&1 1>&2 2>&3)
+					splashScreenChosen=$(whiptail --notags --backtitle "PiAssist" --menu "Select Splash Screen" 20 0 10 $splashscreenList 3>&1 1>&2 2>&3)
 					exit_status=$?
 					splashScreenAcutallySelected=true
 					case $exit_status in
@@ -756,7 +757,7 @@ showMiscellaneousMenuOptions() {
 				"3" "Search for File by File Name" \
 				"4" "Backup Emulator Save files to DropBox (Thanks andreafabrizi)" \
 				"5" "Restore Save files from Backup on DropBox (Thanks andreafabrizi)" \
-				"6" "Change SplashScreen" \
+				"6" "Change Splash Screen" \
 				2>&1 1>&3)
 			exit_status=$?
 			case $exit_status in
@@ -930,6 +931,10 @@ case "$commandToRun" in
 	;;
 	"Restore Save Files from Backup" )
 		restoreFromBackupOfEmulatorSaveFilesFromDropBox;
+		exit
+	;;
+	"Change Splash Screen" )
+		showChangeSplashScreenMenu;
 		exit
 	;;
 esac
