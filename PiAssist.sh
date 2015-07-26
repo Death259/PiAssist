@@ -65,12 +65,13 @@ showNetworkMenuOptions() {
 				currentUser=$(whoami)
 				if [ $currentUser == "root" ] ; then
 					ifconfig wlan0 up
-					#wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//'')
-					wifiNetworkList=$(iwlist wlan0 scan | grep ESSID | awk -F \" '{print $2 ; print $2}')
-					wifiNetworkList+=' Other Other'
-					#wifiNetworkList=(${wifiNetworkList[@]} Other)
-					#wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Network List: \n\n$wifiNetworkList \n\nEnter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
-					wifiSSID=$(whiptail --notags --backtitle "PiAssist" --menu "Select WiFi Network" 20 80 10 $wifiNetworkList 3>&1 1>&2 2>&3)
+					wifiNetworkList=()  # declare list array to be built up
+					ssidList=$(iwlist wlan0 scan | grep ESSID | sed 's/.*:"//;s/"//') # get list of available SSIDs
+					while read -r line; do
+						wifiNetworkList+=("$line" "$line") # append each SSID to the wifiNetworkList array
+					done <<< "$ssidList" # feed in the ssidList to the while loop
+					wifiNetworkList+=(other other) # append an "other" option to the wifiNetworkList array
+					wifiSSID=$(whiptail --notags --backtitle "PiAssist" --menu "Select WiFi Network" 20 80 10 "${wifiNetworkList[@]}" 3>&1 1>&2 2>&3) # display whiptail menu listing out available SSIDs
 					exit_status=$?
 					wifiNetworkActuallySelected=true
 					case $exit_status in
