@@ -750,7 +750,7 @@ rm /home/pi/PiAssist/splashscreens.list
 EOF
 					chmod +x /etc/init.d/splashscreen.sh
 					update-rc.d splashscreen.sh defaults 
-					if (whiptail --title "Reboot?" --yesno "Splash Screen Randomizer has been Installed. Your Pi needs to be rebooted. Okay to Reboot?" 0 0) then
+					if (whiptail --title "Reboot?" --yesno "Splash Screen Randomizer has been Setup. Your Pi needs to be rebooted. Okay to Reboot?" 0 0) then
 						clear
 						shutdown -r now
 						exit
