@@ -6,6 +6,8 @@ HEIGHT=0
 WIDTH=0
 emulationStationConfig='/etc/emulationstation/es_systems.cfg'
 splashscreenDirectory='/home/pi/RetroPie-Setup/supplementary/splashscreens/'
+networkInterfacesConfigLocation="/etc/network/interfaces"
+wpaSupplicantLocation="/etc/wpa_supplicant/wpa_supplicant.conf"
 
 display_result() {
   whiptail --title "$1" \
@@ -17,6 +19,173 @@ display_result() {
 #########
 #Shows the network menu options
 #########
+
+# showNetworkMenuOptions() {
+	# stayInNetworkMenu=true
+	# while $stayInNetworkMenu; do
+		# exec 3>&1
+		# networkMenuSeleciton=$(whiptail \
+			# --backtitle "PiAssist" \
+			# --title "System Information" \
+			# --clear \
+			# --cancel-button "Back" \
+			# --menu "Please select:" $HEIGHT $WIDTH 3 \
+			# "1" "Display Network Information" \
+			# "2" "Scan for WiFI Networks (Root Required)" \
+			# "3" "Connect to WiFi Network (Root Required)" \
+			# 2>&1 1>&3)
+		# exit_status=$?
+		# case $exit_status in
+			# $DIALOG_CANCEL)
+			  # stayInNetworkMenu=false
+			  # ;;
+			# $DIALOG_ESC)
+			  # stayInNetworkMenu=false
+			  # ;;
+		# esac
+		# case $networkMenuSeleciton in
+			# 0 )
+			  # stayInNetworkMenu=false
+			  # ;;
+			# 1 )
+				# result=$(ifconfig)
+				# display_result "Network Information"
+				# ;;
+			# 2 )
+				# currentUser=$(whoami)
+				# if [ $currentUser == "root" ] ; then
+					# ifconfig wlan0 up
+					# #result=$(iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^ *//;s/ *$//')
+					# result=$(iwlist wlan0 scan | grep ESSID | awk -F \" '{print $2}')
+					# display_result "WiFi Networks"
+				# else
+					# result=$(echo "You have to be running the script as root in order to scan for WiFi networks. Please try using sudo.")
+					# display_result "WiFi Network"
+				# fi
+				# ;;
+			# 3 )
+				# currentUser=$(whoami)
+				# if [ $currentUser == "root" ] ; then
+					# ifconfig wlan0 up
+					# wlanScanResults="$(iwlist wlan0 scan | awk '/IE: WPA/ || /ESSID:/ || /IE: IEEE/ || /Encryption/')"
+					# wifiNetworkList=()  # declare list array to be built up
+					# ssidList=$(echo "$wlanScanResults" | grep ESSID | sed 's/.*://;s/"//;s/"//') # get list of available SSIDs
+					# while read -r line; do
+						# wifiNetworkList+=("$line" "$line") # append each SSID to the wifiNetworkList array
+					# done <<< "$ssidList" # feed in the ssidList to the while loop
+					# wifiNetworkList+=(Other Other) # append an "Other" option to the wifiNetworkList array
+					# wifiSSID=$(whiptail --notags --backtitle "PiAssist" --menu "Select WiFi Network" 20 80 10 "${wifiNetworkList[@]}" 3>&1 1>&2 2>&3) # display whiptail menu listing out available SSIDs
+					# exit_status=$?
+					# wifiNetworkActuallySelected=true
+					# case $exit_status in
+						# $DIALOG_CANCEL)
+						  # wifiNetworkActuallySelected=false
+						  # ;;
+						# $DIALOG_ESC)
+						  # wifiNetworkActuallySelected=false
+						  # ;;
+					# esac
+					
+					# #if [ "$wifiSSID" == "Other" ] ; then
+					# #	wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Enter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+					# #fi
+					
+					# if [ $wifiNetworkActuallySelected == true ] && [ "$wifiSSID" != "" ] ; then
+					# #if [ "$wifiSSID" != "" ] ; then
+						# actuallyConnectToWifi=false
+						# networkInterfacesConfigLocation="/etc/network/interfaces"
+						# wpaSupplicantLocation="/etc/wpa_supplicant/wpa_supplicant.conf"
+						
+						# if (whiptail --title "Create Backup?" --yesno "Would you like to create a backup of your current network interfaces config?" 0 0) then
+							# if [ ! -f $networkInterfacesConfigLocation"_bak" ] || [ ! -f $wpaSupplicantLocation"_bak" ] ; then
+								# cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
+								# cp $wpaSupplicantLocation $wpaSupplicantLocation"_bak"
+							# else
+								# if (whiptail --title "Overwrite Backup?" --yesno "A backup currently exists. Do you want to overwrite it?" 0 0) then
+									# cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
+									# cp $wpaSupplicantLocation $wpaSupplicantLocation"_bak"
+								# fi
+								# actuallyConnectToWifi=true
+							# fi		
+						# else
+							# actuallyConnectToWifi=true
+						# fi
+						# if [ $actuallyConnectToWifi == true ] ; then
+							# ssidLineNumber=$(echo "$wlanScanResults" | awk '/"'"$wifiSSID"'"/ {print NR; exit}')
+							# encryptionKey=$(echo "$wlanScanResults" | awk 'NR > "'"$ssidLineNumber"'" && /Encryption/ {print; exit}' | sed 's/Encryption key://' | sed -e 's/^[[:space:]]*//')
+							# encryptionKeyLineNumber=$(echo "$wlanScanResults" | awk 'NR > "'"$ssidLineNumber"'" && /ESSID/  {print NR; exit}')
+							# encryptionUsed=$(echo "$wlanScanResults" | awk 'NR > "'"$ssidLineNumber"'" && NR < "'"$encryptionKeyLineNumber"'" && /IE:/ {print; exit}')							
+							
+							# #if other ask for encryption type
+							# if [ "$wifiSSID" == "Other" ] ; then
+								# wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Enter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
+								# encryptionUsed=$(whiptail --backtitle "PiAssist" --radiolist "Select ROM Folders" 0 0 0 "WPA" "" on "WEP" "" off "Open" "" off 3>&1 1>&2 2>&3)
+							# fi
+							
+							# #if wifi ssid already exists in the wpa_supplicant.conf alert the user and don't continue
+							# #this will be replaced by removing that specific configuration in the future
+							# if grep -q "ssid=\"$wifiSSID\"" "$wpaSupplicantLocation"; then
+								# result=$(echo "The wifi ssid is already in the wpa_supplicant file. You will have to manually delete it from the /etc/wpa_supplicant/wpa_supplicant.conf file if you want to update the WiFi connection information. This will be automated in the future.")
+								# display_result "WiFi Network"
+							# else
+								# #if if wep or wpa/wpa2, ask for password
+								# if [[ $encryptionKey == "on" ]] ; then							
+									# wifiPassword=$(whiptail --title "WiFi Network Password" --backtitle "PiAssist" --passwordbox "Enter the password of the WiFi network you would like to connect to:" 10 70 2>&1 1>&3);
+									# if [ ! "$wifiPassword" == "" ] ; then
+										# #if wpa/wpa2
+										# if [[ $encryptionUsed == *"WPA"* ]]; then
+											# #echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet dhcp\n\twpa-ssid "'$wifiSSID'"\n\twpa-psk "'$wifiPassword'"' > $networkInterfacesConfigLocation
+											# echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet manual\nwpa-roam /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp' > $networkInterfacesConfigLocation
+											# echo -e '\nnetwork={\n\tssid="'$wifiSSID'"\n\tpsk="'$wifiPassword'"\n}\n' >> $wpaSupplicantLocation
+										# #else wep
+										# else
+											# echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet manual\nwpa-roam /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp' > $networkInterfacesConfigLocation
+											# echo -e '\nnetwork={\n\tssid="'$wifiSSID'"\n\tkey_mgmt=NONE\n\twep_tx_keyidx=0\n\twep_key0='$wifiPassword'\n}\n' >> $wpaSupplicantLocation
+										# fi
+									# fi
+								# #else wifi network is open, then go ahead and add network to wpa_supplicant
+								# else
+									# echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet manual\nwpa-roam /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp' > $networkInterfacesConfigLocation
+									# echo -e '\nnetwork={\n\tssid="'$wifiSSID'"\n\tkey_mgmt=NONE\n}\n' >> $wpaSupplicantLocation
+								# fi
+								
+								# ifdown wlan0 > /dev/null 2>&1
+								# ifup wlan0 > /dev/null 2>&1
+								
+								# inetAddress=$(ifconfig wlan0 | grep "inet addr.*")
+								# if [ "$inetAddress" != "" ] ; then
+									# result=$(echo "You are now connected to $wifiSSID.")
+									# display_result "WiFi Network"
+								# else
+									# result=$(echo "There was an issue trying to connect to $wifiSSID. Please ensure you typed the SSID and password correctly.")
+									# display_result "WiFi Network"
+								# fi
+							# fi
+						# fi
+					# fi
+				# else
+					# result=$(echo "You have to be running the script as root in order to connect to a WiFi network. Please try using sudo.")
+					# display_result "WiFi Network"
+				# fi
+			# ;;
+		# esac
+	# done
+# }
+
+function list_wifi() { 
+	local line 
+	local essid 
+	local type 
+	while read line; do 
+		[[ "$line" =~ ^Cell && -n "$essid" ]] && echo -e "$essid\n$type" 
+		[[ "$line" =~ ^ESSID ]] && essid=$(echo "$line" | cut -d\" -f2) 
+		[[ "$line" == "Encryption key:off" ]] && type="open" 
+		[[ "$line" == "Encryption key:on" ]] && type="wep" 
+		[[ "$line" =~ ^IE:.*WPA ]] && type="wpa" 
+	done < <(iwlist wlan0 scan | grep -o "Cell .*\|ESSID:\".*\"\|IE: .*WPA\|Encryption key:.*") 
+	echo -e "$essid\n$type" 
+} 
+
 
 showNetworkMenuOptions() {
 	stayInNetworkMenu=true
@@ -64,102 +233,109 @@ showNetworkMenuOptions() {
 			3 )
 				currentUser=$(whoami)
 				if [ $currentUser == "root" ] ; then
-					ifconfig wlan0 up
-					wlanScanResults="$(iwlist wlan0 scan | awk '/IE: WPA/ || /ESSID:/ || /IE: IEEE/ || /Encryption/')"
-					wifiNetworkList=()  # declare list array to be built up
-					ssidList=$(echo "$wlanScanResults" | grep ESSID | sed 's/.*://;s/"//;s/"//') # get list of available SSIDs
-					while read -r line; do
-						wifiNetworkList+=("$line" "$line") # append each SSID to the wifiNetworkList array
-					done <<< "$ssidList" # feed in the ssidList to the while loop
-					wifiNetworkList+=(Other Other) # append an "Other" option to the wifiNetworkList array
-					wifiSSID=$(whiptail --notags --backtitle "PiAssist" --menu "Select WiFi Network" 20 80 10 "${wifiNetworkList[@]}" 3>&1 1>&2 2>&3) # display whiptail menu listing out available SSIDs
-					exit_status=$?
-					wifiNetworkActuallySelected=true
-					case $exit_status in
-						$DIALOG_CANCEL)
-						  wifiNetworkActuallySelected=false
-						  ;;
-						$DIALOG_ESC)
-						  wifiNetworkActuallySelected=false
-						  ;;
-					esac
+					local line
+					local essid
+					local type
+					while read line; do
+						[[ "$line" =~ ^Cell && -n "$essid" ]] #&& echo -e "$essid\n$type"
+						[[ "$line" =~ ^ESSID ]] && essid=$(echo "$line" | cut -d\" -f2)
+						[[ "$line" == "Encryption key:off" ]] && type="open"
+						[[ "$line" == "Encryption key:on" ]] && type="wep"
+						[[ "$line" =~ ^IE:.*WPA ]] && type="wpa"
+					done < <(iwlist wlan0 scan | grep -o "Cell .*\|ESSID:\".*\"\|IE: .*WPA\|Encryption key:.*")
 					
-					#if [ "$wifiSSID" == "Other" ] ; then
-					#	wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Enter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
-					#fi
+					local essids=() 
+					local types=() 
+					local options=()
+					i=0 
+					while read essid; read type; do 
+						essids+=("$essid") 
+						types+=("$type") 
+						options+=("$i" "$essid") 
+						((i++)) 
+					done < <(list_wifi)
+					options+=("H" "Hidden ESSID")
 					
-					if [ $wifiNetworkActuallySelected == true ] && [ "$wifiSSID" != "" ] ; then
-					#if [ "$wifiSSID" != "" ] ; then
-						actuallyConnectToWifi=false
-						networkInterfacesConfigLocation="/etc/network/interfaces"
-						wpaSupplicantLocation="/etc/wpa_supplicant/wpa_supplicant.conf"
+					local cmd=(whiptail --backtitle "PiAssist" --menu "Please choose the network you would like to connect to" 22 76 16) 
+					choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) 
+					[[ -z "$choice" ]] && return 
+ 
+					local hidden=0 
+					if [[ "$choice" == "H" ]]; then 
+						cmd=(whiptail --backtitle "PiAssist" --inputbox "Please enter the ESSID" 10 60) 
+						essid=$("${cmd[@]}" 2>&1 >/dev/tty) 
+						[[ -z "$essid" ]] && return 
+						cmd=(whiptail --backtitle "PiAssist" --nocancel --menu "Please choose the WiFi type" 12 40 6) 
+						options=( 
+							wpa "WPA/WPA2" 
+							wep "WEP" 
+							open "Open" 
+						) 
+						type=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) 
+						hidden=1 
+					else 
+						essid=${essids[choice]} 
+						type=${types[choice]} 
+					fi
+
+					if [[ "$type" == "wpa" || "$type" == "wep" ]]; then 
+						local key="" 
+						cmd=(whiptail --backtitle "PiAssist" --title "WiFi Network Password" --passwordbox "Please enter the WiFi key/password for $essid" 10 63) 
+						local key_ok=0 
+						while [[ $key_ok -eq 0 ]]; do 
+							key=$("${cmd[@]}" 2>&1 >/dev/tty) 
+							key_ok=1 
+							if [[ ${#key} -lt 8 || ${#key} -gt 63 ]] && [[ "$type" == "wpa" ]]; then
+								result=$("Password must be between 8 and 63 characters")
+								display_result "Network Information"
+								key_ok=0 
+							fi 
+							if [[ -z "$key" && $type == "wep" ]]; then
+								result=$("Password cannot be empty")
+								display_result "Network Information"
+								key_ok=0 
+							fi 
+						done 
+					fi
+					
+					local wpa_config 
+					wpa_config+="\tssid=\"$essid\"\n" 
+					case $type in 
+						wpa) 
+							wpa_config+="\tpsk=\"$key\"\n" 
+							;; 
+						wep) 
+							wpa_config+="\tkey_mgmt=NONE\n" 
+							wpa_config+="\twep_tx_keyidx=0\n" 
+							wpa_config+="\twep_key0=$key\n" 
+							;; 
+						open) 
+							wpa_config+="\tkey_mgmt=NONE\n" 
+						;; 
+					esac 
+     
+					[[ $hidden -eq 1 ]] &&  wpa_config+="\tscan_ssid=1\n"
+					
+					#if wifi ssid already exists in the wpa_supplicant.conf alert the user and don't continue
+					#this will be replaced by removing that specific configuration in the future
+					if grep -q "$essid" "$wpaSupplicantLocation"; then
+						result=$(echo "The wifi ssid is already in the wpa_supplicant file. You will have to manually delete it from the /etc/wpa_supplicant/wpa_supplicant.conf file if you want to update the WiFi connection information. This will be automated in the future.")
+						display_result "WiFi Network"
+					else
+						echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet manual\nwpa-roam /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp' > $networkInterfacesConfigLocation
+						echo -e '\nnetwork={\n'"$wpa_config"'}\n' >> $wpaSupplicantLocation
 						
-						if (whiptail --title "Create Backup?" --yesno "Would you like to create a backup of your current network interfaces config?" 0 0) then
-							if [ ! -f $networkInterfacesConfigLocation"_bak" ] || [ ! -f $wpaSupplicantLocation"_bak" ] ; then
-								cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
-								cp $wpaSupplicantLocation $wpaSupplicantLocation"_bak"
-							else
-								if (whiptail --title "Overwrite Backup?" --yesno "A backup currently exists. Do you want to overwrite it?" 0 0) then
-									cp $networkInterfacesConfigLocation $networkInterfacesConfigLocation"_bak"
-									cp $wpaSupplicantLocation $wpaSupplicantLocation"_bak"
-								fi
-								actuallyConnectToWifi=true
-							fi		
-						else
-							actuallyConnectToWifi=true
-						fi
-						if [ $actuallyConnectToWifi == true ] ; then
-							ssidLineNumber=$(echo "$wlanScanResults" | awk '/"'"$wifiSSID"'"/ {print NR; exit}')
-							encryptionKey=$(echo "$wlanScanResults" | awk 'NR > "'"$ssidLineNumber"'" && /Encryption/ {print; exit}' | sed 's/Encryption key://' | sed -e 's/^[[:space:]]*//')
-							encryptionKeyLineNumber=$(echo "$wlanScanResults" | awk 'NR > "'"$ssidLineNumber"'" && /ESSID/  {print NR; exit}')
-							encryptionUsed=$(echo "$wlanScanResults" | awk 'NR > "'"$ssidLineNumber"'" && NR < "'"$encryptionKeyLineNumber"'" && /IE:/ {print; exit}')							
-							
-							#if other ask for encryption type
-							if [ "$wifiSSID" == "Other" ] ; then
-								wifiSSID=$(whiptail --title "WiFi Network SSID" --backtitle "PiAssist" --inputbox "Enter the SSID of the WiFi network you would like to connect to:" 0 0 2>&1 1>&3);
-								encryptionUsed=$(whiptail --backtitle "PiAssist" --radiolist "Select ROM Folders" 0 0 0 "WPA" "" on "WEP" "" off "Open" "" off 3>&1 1>&2 2>&3)
-							fi
-							
-							#if wifi ssid already exists in the wpa_supplicant.conf alert the user and don't continue
-							#this will be replaced by removing that specific configuration in the future
-							if grep -q "ssid=\"$wifiSSID\"" "$wpaSupplicantLocation"; then
-								result=$(echo "The wifi ssid is already in the wpa_supplicant file. You will have to manually delete it from the /etc/wpa_supplicant/wpa_supplicant.conf file if you want to update the WiFi connection information. This will be automated in the future.")
-								display_result "WiFi Network"
-							else
-								#if if wep or wpa/wpa2, ask for password
-								if [[ $encryptionKey == "on" ]] ; then							
-									wifiPassword=$(whiptail --title "WiFi Network Password" --backtitle "PiAssist" --passwordbox "Enter the password of the WiFi network you would like to connect to:" 10 70 2>&1 1>&3);
-									if [ ! "$wifiPassword" == "" ] ; then
-										#if wpa/wpa2
-										if [[ $encryptionUsed == *"WPA"* ]]; then
-											#echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet dhcp\n\twpa-ssid "'$wifiSSID'"\n\twpa-psk "'$wifiPassword'"' > $networkInterfacesConfigLocation
-											echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet manual\nwpa-roam /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp' > $networkInterfacesConfigLocation
-											echo -e '\nnetwork={\n\tssid="'$wifiSSID'"\n\tpsk="'$wifiPassword'"\n}\n' >> $wpaSupplicantLocation
-										#else wep
-										else
-											echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet manual\nwpa-roam /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp' > $networkInterfacesConfigLocation
-											echo -e '\nnetwork={\n\tssid="'$wifiSSID'"\n\tkey_mgmt=NONE\n\twep_tx_keyidx=0\n\twep_key0='$wifiPassword'\n}\n' >> $wpaSupplicantLocation
-										fi
-									fi
-								#else wifi network is open, then go ahead and add network to wpa_supplicant
-								else
-									echo -e 'auto lo\n\niface lo inet loopback\niface eth0 inet dhcp\n\nallow-hotplug wlan0\nauto wlan0\niface wlan0 inet manual\nwpa-roam /etc/wpa_supplicant/wpa_supplicant.conf\niface default inet dhcp' > $networkInterfacesConfigLocation
-									echo -e '\nnetwork={\n\tssid="'$wifiSSID'"\n\tkey_mgmt=NONE\n}\n' >> $wpaSupplicantLocation
-								fi
-								
-								ifdown wlan0 > /dev/null 2>&1
-								ifup wlan0 > /dev/null 2>&1
-								
-								inetAddress=$(ifconfig wlan0 | grep "inet addr.*")
-								if [ "$inetAddress" != "" ] ; then
-									result=$(echo "You are now connected to $wifiSSID.")
-									display_result "WiFi Network"
-								else
-									result=$(echo "There was an issue trying to connect to $wifiSSID. Please ensure you typed the SSID and password correctly.")
-									display_result "WiFi Network"
-								fi
-							fi
-						fi
+						ifup wlan0 &>/dev/null 
+						local id="" 
+						i=0 
+						while [[ -z "$id" && $i -lt 20 ]]; do 
+							sleep 1 
+							id=$(iwgetid -r) 
+							((i++)) 
+						done
+						
+						result=$(echo "Unable to connect to network $essid. If you have a ethernet cord currently plugged in, the WiFi will not be utilized until that is unplugged. This could be the reason for not being able to connect to the wifi network.")
+						[[ -z "$id" ]] && display_result "Network Information"
 					fi
 				else
 					result=$(echo "You have to be running the script as root in order to connect to a WiFi network. Please try using sudo.")
