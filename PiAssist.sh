@@ -5,7 +5,6 @@ DIALOG_ESC=255
 HEIGHT=0
 WIDTH=0
 emulationStationConfig='/etc/emulationstation/es_systems.cfg'
-splashscreenDirectory='/home/pi/RetroPie-Setup/supplementary/splashscreens/'
 networkInterfacesConfigLocation="/etc/network/interfaces"
 wpaSupplicantLocation="/etc/wpa_supplicant/wpa_supplicant.conf"
 
@@ -334,7 +333,7 @@ showNetworkMenuOptions() {
 							((i++)) 
 						done
 						
-						result=$(echo "Unable to connect to network $essid. If you have a ethernet cord currently plugged in, the WiFi will not be utilized until that is unplugged. This could be the reason for not being able to connect to the wifi network.")
+						result=$(echo "Unable to connect to network $essid. If you have an ethernet cord currently plugged in, the WiFi will not be utilized until that is unplugged. This could be the reason for not being able to connect to the WiFi network.")
 						[[ -z "$id" ]] && display_result "Network Information"
 					fi
 				else
@@ -898,6 +897,7 @@ restoreFromBackupOfEmulatorSaveFilesFromDropBox() {
 #########
 
 showChangeSplashScreenMenu() {
+	splashscreenDirectory='/home/pi/RetroPie-Setup/supplementary/splashscreens/'
 	currentUser=$(whoami)
 	if [ "$currentUser" == "root" ] ; then
 		stayInPowerOptionsMenu=true
@@ -930,6 +930,11 @@ showChangeSplashScreenMenu() {
 						rm /etc/init.d/splashscreen.sh
 						update-rc.d splashscreen.sh remove
 					fi
+					
+					if [[ -d "/opt/retropie/supplementary/splashscreen" ]] ; then
+						splashscreenDirectory="/opt/retropie/supplementary/splashscreen"
+					fi
+					
 					splashscreenList=$(find $splashscreenDirectory \( -iname '*.png' -o -iname '*.jpg' \) | awk '{print $0; print $0;}')					
 					splashScreenChosen=$(whiptail --notags --backtitle "PiAssist" --menu "Select Splash Screen" 20 0 10 $splashscreenList 3>&1 1>&2 2>&3)
 					exit_status=$?
@@ -964,6 +969,10 @@ find /home/pi/RetroPie-Setup/supplementary/splashscreens/ \( -iname '*.png' -o -
 shuf -n 1 /home/pi/PiAssist/splashscreens.list > /etc/splashscreen.list
 rm /home/pi/PiAssist/splashscreens.list
 EOF
+					if [[ -d "/opt/retropie/supplementary/splashscreen" ]] ; then
+						sed 's/\/home\/pi\/RetroPie-Setup/\/opt\/retropie/g' /etc/init.d/splashscreen.sh > /etc/init.d/splashscreen.sh
+					fi
+					
 					chmod +x /etc/init.d/splashscreen.sh
 					update-rc.d splashscreen.sh defaults 
 					if (whiptail --title "Reboot?" --yesno "Splash Screen Randomizer has been Setup. Your Pi needs to be rebooted. Okay to Reboot?" 0 0) then
