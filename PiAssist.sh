@@ -358,11 +358,12 @@ showBluetoothMenuOptions() {
 			--title "System Information" \
 			--clear \
 			--cancel-button "Back" \
-			--menu "Please select:" $HEIGHT $WIDTH 4 \
+			--menu "Please select:" $HEIGHT $WIDTH 5 \
 			"1" "Install Bluetooth Packages (Root Required)" \
-			"2" "Connect Bluetooth Device" \
-			"3" "Remove Bluetooth Device" \
-			"4" "Display Registered & Connected Bluetooth Devices" \
+			"2" "Remove Bluetooth Packages (Root Required)" \
+			"3" "Connect Bluetooth Device" \
+			"4" "Remove Bluetooth Device" \
+			"5" "Display Registered & Connected Bluetooth Devices" \
 			2>&1 1>&3)
 		exit_status=$?
 		case $exit_status in
@@ -422,6 +423,19 @@ showBluetoothMenuOptions() {
 				fi
 				;;
 			2 )
+				currentUser=$(whoami)
+				if [ $currentUser == "root" ] ; then
+					apt-get remove --purge bluetooth blueman bluez-utils					
+					apt-get clean
+					
+					result=$(echo "All bluetooth packages have been removed")
+					display_result "Bluetooth"
+				else
+					result=$(echo "You have to be running the script as root in order to remove the bluetooth packages. Please try using sudo.")
+					display_result "Bluetooth"
+				fi
+				;;
+			3 )
 				echo "Scanning..."
 				bluetoothDeviceList=$(hcitool scan --flush | sed -e 1d)
 				if [ "$bluetoothDeviceList" == "" ] ; then
@@ -479,7 +493,7 @@ showBluetoothMenuOptions() {
 					fi
 				fi
 				;;
-			3 )				
+			4 )				
 				bluetoothDeviceList=$(bluez-test-device list)
 				if [ "$bluetoothDeviceList" == "" ] ; then
 					result="There are no devices to remove."
@@ -518,7 +532,7 @@ showBluetoothMenuOptions() {
 					fi
 				fi
 				;;
-			4 )
+			5 )
 				registeredDevices="There are no registered devices"
 				if [ "$(bluez-test-device list)" != "" ] ; then
 					registeredDevices=$(bluez-test-device list)
