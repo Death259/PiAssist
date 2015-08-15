@@ -1003,6 +1003,18 @@ EOF
 	fi
 }
 
+function get_rom_information_from_es_systems_config() {
+	local line 
+	local system_name 
+	local path 
+	while read line; do 
+		[[ "$line" =~ ^\<system\> && -n "$system_name" ]] && echo -e "$system_name\n$path" 
+		[[ "$line" =~ ^\<name\> ]] && system_name=$(echo "$line" | cut -d\> -f2 | cut -d\< -f1) 
+		[[ "$line" =~ ^\<path\> ]] && path=$(echo "$line" | cut -d\> -f2 | cut -d\< -f1) 
+	done < /etc/emulationstation/es_systems.cfg 
+	echo -e "$system_name\n$path" 
+}
+
 #########
 #Show miscellaneous menu options
 #########
@@ -1075,57 +1087,59 @@ showMiscellaneousMenuOptions() {
 							fi
 						fi
 						
-						#show scraper menu - ask user which console they would like to scrape					
-						romFolderList=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g" | awk '{print $0; print NR; print "OFF";}')
-						if [ "$romFolderList" == "" ] ; then
+						local system_names=() 
+						local system_name 
+						local paths=() 
+						local path
+						local options=()
+						i=0
+						while read system_name; read path; do 
+							system_names+=("$system_name") 
+							paths+=("$path") 
+							options+=("$i" "$system_name" OFF)
+							((i++))
+						done < <(get_rom_information_from_es_systems_config)
+						
+						if [[ ${#system_names[@]} -eq 0 ]] ; then
 							result="No rom folders were found. Not quite sure how that's possible..."
 							display_result "ROM Scraper"
 						else
-							esSystemsList+=$romFolderList
-							romFolders=$(whiptail --backtitle "PiAssist" --checklist "Select ROM Folders" 0 0 0 $romFolderList 3>&1 1>&2 2>&3)
-							exit_status=$?
-							romFolderAcutallySelected=true
-							case $exit_status in
-								$DIALOG_CANCEL)
-								  romFolderAcutallySelected=false
-								  ;;
-								$DIALOG_ESC)
-								  romFolderAcutallySelected=false
-								  ;;
-							esac
-							if [ $romFolderAcutallySelected == true ] ; then
-								romFolders=$(echo "$romFolders" | sed "s/\" \"/\\n/g" | sed "s/\"//g")
-								echo "Scraping..."
-								while read -r romFolder; do
-									gameListXMLLocation="/home/pi/.emulationstation/gamelists/$(basename $romFolder)/gamelist.xml"
-									#if mame, then we need to use the mame 
-									if [[ $romFolder == *"mame"* ]]; then
-										scraper -mame -mame_img "t,m,s" -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="~/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
-									else
-										scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -image_path="/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
-									fi
-									chown pi:pi "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)"
-									#the scraper doesn't include the opening XML tag that is required
-									if grep -q "<?xml" "$gameListXMLLocation" ; then
-										#no action needs to occur
-										echo "" > /dev/null
-									else
-										echo '<?xml version="1.0"?>' | cat - "$gameListXMLLocation" > temp && mv temp "$gameListXMLLocation"
-									fi
-									
-									chown pi:pi "$gameListXMLLocation"
-									
-									find "/home/pi/.emulationstation/downloaded_images/$(basename $romFolder)" -exec chown pi:pi {} +
-									
-									if [[ -e temp ]]; then
-										rm temp
-									fi
-									
-								done <<< "$romFolders"
+							local cmd=(whiptail --backtitle "PiAssist" --checklist "Select ROM Folders" 22 76 16) 
+							choices+=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) 
+							[[ -z "$choices" ]] && return
+							
+							for choice in $choices
+							do
+								choice=$(echo $choice | sed 's/"//g')
+								gamelist_folder_name=$(echo ${system_names[$choice]})
+								romFolder=$(echo ${paths[$choice]} | sed 's/~/\/home\/pi/g')
+								gameListXMLLocation="/home/pi/.emulationstation/gamelists/$gamelist_folder_name/gamelist.xml"
+								#if mame, then we need to use the mame 
+								if [[ $romFolder == *"mame"* ]]; then
+									scraper -mame -mame_img "t,m,s" -image_dir="/home/pi/.emulationstation/downloaded_images/$gamelist_folder_name" -image_path="~/.emulationstation/downloaded_images/$gamelist_folder_name" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
+								else
+									scraper -image_dir="/home/pi/.emulationstation/downloaded_images/$gamelist_folder_name" -image_path="/home/pi/.emulationstation/downloaded_images/$gamelist_folder_name" -output_file="$gameListXMLLocation" -rom_dir="$romFolder"
+								fi
+								chown pi:pi "/home/pi/.emulationstation/downloaded_images/$gamelist_folder_name"
+								#the scraper doesn't include the opening XML tag that is required
+								if grep -q "<?xml" "$gameListXMLLocation" ; then
+									#no action needs to occur
+									echo "" > /dev/null
+								else
+									echo '<?xml version="1.0"?>' | cat - "$gameListXMLLocation" > temp && mv temp "$gameListXMLLocation"
+								fi
 								
-								result="ROMS have been scraped. You can  now get back into Emulation Station."
-								display_result "ROM Scraper Created by SSELPH"
-							fi
+								chown pi:pi "$gameListXMLLocation"
+								
+								find "/home/pi/.emulationstation/downloaded_images/$gamelist_folder_name" -exec chown pi:pi {} +
+								
+								if [[ -e temp ]]; then
+									rm temp
+								fi
+							done
+							
+							result="ROMS have been scraped. You can  now get back into Emulation Station."
+							display_result "ROM Scraper Created by SSELPH"
 						fi
 					fi
 					;;
@@ -1203,7 +1217,6 @@ esac
 #########
 #Perform dialog functions to present users the GUI
 #########
-
 
 while true; do
   exec 3>&1
