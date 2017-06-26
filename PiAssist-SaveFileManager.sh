@@ -69,18 +69,6 @@ restoreFromBackupOfEmulatorSaveFilesFromDropBox() {
 	fi
 }
 
-function get_rom_information_from_es_systems_config() {
-	local line 
-	local system_name 
-	local path 
-	while read line; do 
-		[[ "$line" =~ ^\<system\> && -n "$system_name" ]] && echo -e "$system_name\n$path" 
-		[[ "$line" =~ ^\<name\> ]] && system_name=$(echo "$line" | cut -d\> -f2 | cut -d\< -f1) 
-		[[ "$line" =~ ^\<path\> ]] && path=$(echo "$line" | cut -d\> -f2 | cut -d\< -f1) 
-	done < /etc/emulationstation/es_systems.cfg 
-	echo -e "$system_name\n$path" 
-}
-
 #########
 #Perform actions based on parameters provided to the script. This should generally be from Emulation Station as the %ROM% gets passed in as a parameter.
 #########
