@@ -20,26 +20,25 @@ display_result() {
 #########
 
 gameSavesFileName="GameSaves.tar.gz"
-backupEmulatorSaveFilesToDropBox() {
-	wget https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh -q -O /home/pi/PiAssist/dropbox_uploader.bsh
-	chmod +x /home/pi/PiAssist/dropbox_uploader.bsh
 
-	if [[ -e /home/pi/.dropbox_uploader ]]; then
-		/home/pi/PiAssist/dropbox_uploader.bsh
-	fi
+wget https://raw.githubusercontent.com/andreafabrizi/Dropbox-Uploader/master/dropbox_uploader.sh -q -O /home/pi/PiAssist/dropbox_uploader.bsh
+chmod +x /home/pi/PiAssist/dropbox_uploader.bsh
 
-	#find /home/pi/RetroPie/roms/ -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' | while read line; do
-	#	remotePath="$(basename "$(dirname "$line")")"/"${line##*/}"
-	#	/home/pi/PiAssist/dropbox_uploader.bsh upload "$line" "$remotePath"
-	#done
-	
-	romLocations=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g")
-	
-	find $romLocations \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
-	#find /home/pi/RetroPie/roms/ \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
-	/home/pi/PiAssist/dropbox_uploader.bsh upload "$gameSavesFileName" "$gameSavesFileName"
-	rm "$gameSavesFileName"
+if [[ -e /home/pi/.dropbox_uploader ]]; then
+	/home/pi/PiAssist/dropbox_uploader.bsh
+fi
 
-	result="All known saved files have been backed up."
-	display_result "Saved Files Backed Up"
-}
+#find /home/pi/RetroPie/roms/ -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' | while read line; do
+#	remotePath="$(basename "$(dirname "$line")")"/"${line##*/}"
+#	/home/pi/PiAssist/dropbox_uploader.bsh upload "$line" "$remotePath"
+#done
+
+romLocations=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g")
+
+find $romLocations \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
+#find /home/pi/RetroPie/roms/ \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
+/home/pi/PiAssist/dropbox_uploader.bsh upload "$gameSavesFileName" "$gameSavesFileName"
+rm "$gameSavesFileName"
+
+result="All known saved files have been backed up."
+display_result "Saved Files Backed Up"
