@@ -29,29 +29,31 @@ synchronizeSaveFilesWithDropBox() {
 		tar -zxvf "$gameSavesFileName" -C / --keep-newer-files #--strip-components=2 -C /home/pi/
 		rm "$gameSavesFileName"
 		
-		result="All save files have been restored from backup."
-		display_result "Synchronizing Save Files"
+		#Archive all save files and upload to dropbox
+		romLocations=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g")
+		find $romLocations \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.rtc' -o -iname '*.nv' -o -iname '*.fs' -o -iname '*.stat' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
+		/home/pi/dropbox_uploader.bsh upload "$gameSavesFileName" "$gameSavesFileName"
+		
+		result="The save files and save states have been synchronized."
+		display_result "Synchornization Complete"
 	else
 		result="Unable to locate the save file backup. Please ensure that the backup name matches $gameSavesFileName."
 		display_result "Synchronizing Save Files"
 	fi
-
-	#Archive all save files and upload to dropbox
-	romLocations=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g")
-	find $romLocations \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.rtc' -o -iname '*.nv' -o -iname '*.fs' -o -iname '*.stat' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
-	/home/pi/dropbox_uploader.bsh upload "$gameSavesFileName" "$gameSavesFileName"
 	
 	rm -f "dropbox_uploader.bsh"
 	rm -f "$gameSavesFileName"
-	
-	result="The save files and save states have been synchronized."
-	display_result "Synchornization Complete"
 }
 
 wget -q --tries=10 --timeout=20 --spider http://google.com
 if [[ $? -eq 0 ]]; then
 		synchronizeSaveFilesWithDropBox
 else
-		result="Google.com was unreachable so we are assuming the internet as a whole is unreachable. Please connect to either a WiFi network or local area network."
-		display_result "Unable to Connect to the Internet"
+		wget -q --tries=10 --timeout=20 --spider http://amazon.com
+		if [[ $? -eq 0 ]]; then
+				synchronizeSaveFilesWithDropBox
+		else
+			result="Google and Amazon are unreachable so we are assuming the internet as a whole is unreachable. Please connect to either a WiFi network or local area network."
+			display_result "Unable to Connect to the Internet"
+		fi
 fi
