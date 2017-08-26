@@ -2,6 +2,7 @@
 
 #saveFileExtensions=(srm bsv sav state stat fs nv rtc)
 gameSavesFileName="GameSaves.tar.gz"
+esConfigLocation="~/.emulationstation/es_systems.cfg"
 
 display_result() {
   whiptail --title "$1" \
@@ -31,6 +32,11 @@ synchronizeSaveFilesWithDropBox() {
 	fi
 	
 	#Archive all save files and upload to dropbox
+	if [ ! -f "$esConfigLocation" ]
+	then
+		esConfigLocation="/etc/emulationstation/es_systems.cfg"		
+	fi
+	
 	romLocations=$(grep "<path>" /etc/emulationstation/es_systems.cfg | sed "s/<path>//g" | sed "s/<\/path>//g" | sed "s/~/\/home\/pi/g")
 	find $romLocations \( -iname '*.srm' -o -iname '*.bsv' -o -iname '*.sav' -o -iname '*.rtc' -o -iname '*.nv' -o -iname '*.fs' -o -iname '*.stat' -o -iname '*.state' \) -print0 | tar -czvf "$gameSavesFileName" --null -T -
 	/home/pi/dropbox_uploader.bsh upload "$gameSavesFileName" "$gameSavesFileName"
@@ -40,6 +46,24 @@ synchronizeSaveFilesWithDropBox() {
 	
 	rm -f "dropbox_uploader.bsh"
 	rm -f "$gameSavesFileName"
+}
+
+#########
+#Add synchronization to shutdown
+#########
+
+addSynchronizationToShutdown() {
+	#test
+	result=""
+}
+
+#########
+#Add synchronization to startup
+#########
+
+addSynchronizationToStartup() {
+	#test
+	result=""	
 }
 
 wget -q --tries=10 --timeout=20 --spider http://google.com
